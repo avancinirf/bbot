@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
 from .db import get_session
-from .models import Bot, BotAsset, TradeLog
+from .models import Bot, BotAsset, BotLog
 from .binance_client import (
     get_spot_client,
     get_symbol_price_usdt,
@@ -197,7 +197,7 @@ def _execute_spot_market_swap_via_usdt(
     session.add(buy_asset)
 
     # 8) Registra trade log
-    log = TradeLog(
+    log = BotLog(
         bot_id=bot.id,
         side="SWAP",
         from_symbol=sell_symbol,
