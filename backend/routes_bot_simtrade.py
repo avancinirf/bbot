@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from .db import get_session
-from .models import Bot, BotAsset, TradeLog
+from .models import Bot, BotAsset, BotLog
 from .binance_client import get_symbol_price_usdt
 # ==== BLOCK: ROUTES_BOT_SIMTRADE_IMPORTS - END ====
 
@@ -186,7 +186,7 @@ def simulate_trade(bot_id: int, session: Session = Depends(get_session)):
     session.refresh(buy_asset)
 
     # Cria o log da operação simulada
-    log = TradeLog(
+    log = BotLog(
         bot_id=bot.id,
         from_symbol=sell_symbol,
         to_symbol=buy_symbol,

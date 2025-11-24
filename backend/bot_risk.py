@@ -3,7 +3,7 @@ from typing import Tuple
 
 from sqlmodel import Session, select
 
-from .models import Bot, BotAsset, TradeLog
+from .models import Bot, BotAsset, BotLog
 from .binance_client import get_symbol_price_usdt
 # ==== BLOCK: BOT_RISK_IMPORTS - END ====
 
@@ -47,7 +47,7 @@ def check_and_handle_stop_loss(bot: Bot, session: Session) -> Tuple[bool, float,
     - Se perda_percentual >= stop_loss_percent:
         - desativa o bot (is_active = False)
         - zera reserved_amount de todas as moedas do bot
-        - registra um TradeLog com side = 'STOP'
+        - registra um BotLog com side = 'STOP'
     """
     if not bot.stop_loss_percent or bot.stop_loss_percent <= 0:
         return False, 0.0, 0.0
@@ -81,7 +81,7 @@ def check_and_handle_stop_loss(bot: Bot, session: Session) -> Tuple[bool, float,
         f"STOP-LOSS acionado: perda de aproximadamente {loss_percent:.2f}% "
         f"(valor atual ~{current_value:.2f} USDT, inicial ~{initial_value:.2f} USDT)."
     )
-    log = TradeLog(
+    log = BotLog(
         bot_id=bot.id,
         from_symbol="USDT",
         to_symbol="USDT",

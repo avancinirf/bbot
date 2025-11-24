@@ -33,7 +33,7 @@ def init_db():
     """
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     # Import local para registrar os modelos antes do create_all
-    from .models import Bot, BotAsset, TradeLog  # noqa: F401
+    from .models import Bot, BotAsset, BotLog  # noqa: F401
 
     SQLModel.metadata.create_all(engine)
 # ==== BLOCK: DB_INIT - END ====
