@@ -1,0 +1,6 @@
+# ==== BLOCK: PYTHON DEPENDENCIES - START ====
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+sqlmodel==0.0.22
+binance-connector==3.6.0
+# ==== BLOCK: PYTHON DEPENDENCIES - END ====

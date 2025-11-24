@@ -1,0 +1,15 @@
+# ==== BLOCK: DOCKERIGNORE - START ====
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+.vscode
+.idea
+.git
+.gitignore
+node_modules
+frontend/node_modules
+frontend/dist
+# ==== BLOCK: DOCKERIGNORE - END ====
