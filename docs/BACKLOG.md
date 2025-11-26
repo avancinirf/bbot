@@ -72,6 +72,16 @@ As prioridades são:
 - [x] P1 – Exibição de indicadores por moeda.
 - [x] P1 – Exibição de oportunidade atual do bot.
 - [x] P1 – Listagem de logs de trade.
+- [x] P0 – Formulário de criação de bot na UI:
+  - nome;
+  - saldo inicial;
+  - stop-loss;
+  - modo inicial (default: SIMULATED).
+- [x] P0 – Formulário de adição de moeda na UI:
+  - símbolo;
+  - `buy_percent` (default sugerido: -3%);
+  - `sell_percent` (default sugerido: +5%);
+  - validação simples (backend confirma símbolo via Binance).
 
 ### 2.2 Em andamento
 
@@ -81,18 +91,6 @@ As prioridades são:
   - chamar rebalance manual.
 
 ### 2.3 Pendente
-
-- [ ] P0 – Formulário de criação de bot na UI:
-  - nome;
-  - saldo inicial;
-  - stop-loss;
-  - modo inicial (default: SIMULATED).
-
-- [ ] P0 – Formulário de adição de moeda na UI:
-  - símbolo;
-  - `buy_percent` (default sugerido: -3%);
-  - `sell_percent` (default sugerido: +5%);
-  - validação simples (backend confirma símbolo via Binance).
 
 - [ ] P1 – Edição de `buy_percent` e `sell_percent` diretamente na UI.
 - [ ] P1 – Edição de flags `can_buy` / `can_sell` na UI.

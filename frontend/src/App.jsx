@@ -7,6 +7,7 @@ import ActiveBotOpportunity from "./components/ActiveBotOpportunity.jsx";
 import ActiveBotLogs from "./components/ActiveBotLogs.jsx";
 import BotsList from "./components/BotsList.jsx";
 import FooterInfo from "./components/FooterInfo.jsx";
+import BotForms from "./components/BotForms.jsx";
 // ==== BLOCK: APP_IMPORTS - END ====
 
 
@@ -117,6 +118,7 @@ const App = () => {
         </section>
         <aside>
           <BotsList />
+          <BotForms />
         </aside>
       </main>
       {/* ==== BLOCK: MAIN_LAYOUT - END ==== */}

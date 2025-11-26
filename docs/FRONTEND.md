@@ -207,13 +207,6 @@ Responsabilidade:
 
 ## Pendências planejadas
 
-- Formulário de criação de bot:
-  - permitir criar bot da interface, sem `curl`.
-
-- Formulário de adição de moeda:
-  - selecionar símbolo (ex.: input + validação no backend);
-  - configurar `buy_percent` e `sell_percent` com defaults.
-
 - Edição interativa de thresholds:
   - ajustar percentuais direto na lista de moedas.
 
