@@ -67,6 +67,8 @@ class BotAssetBase(SQLModel):
     can_sell: bool = True
     initial_price_usdt: float = 0.0
     reserved_amount: float = 0.0
+    # Evita execução simultânea de trades no mesmo par
+    is_locked: bool = False
 
 
 class BotAsset(BotAssetBase, table=True):
