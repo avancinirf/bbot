@@ -1,7 +1,7 @@
 // ==== BLOCK: BOTS_LIST - START ====
 import React, { useEffect, useState } from "react";
 
-const BotsList = () => {
+const BotsList = ({ refreshKey = 0, onRefresh = () => {} }) => {
   const [bots, setBots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,7 +25,8 @@ const BotsList = () => {
 
   useEffect(() => {
     loadBots();
-  }, []);
+    // recarrega a lista quando o refreshKey muda (novo bot ou mudança de modo)
+  }, [refreshKey]);
 
   const handleActivate = async (botId) => {
     try {
@@ -38,8 +39,7 @@ const BotsList = () => {
       await res.json();
       // Recarregamos lista de bots
       await loadBots();
-      // E recarregamos a página inteira para atualizar o painel "Bot ativo"
-      window.location.reload();
+      onRefresh();
     } catch (err) {
       console.error("Erro ao ativar bot:", err);
       setError("Não foi possível ativar o bot.");

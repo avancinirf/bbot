@@ -1,7 +1,7 @@
 // ==== BLOCK: ACTIVE_BOT_ASSETS - START ====
 import React, { useEffect, useState } from "react";
 
-const ActiveBotAssets = () => {
+const ActiveBotAssets = ({ refreshKey = 0 }) => {
   const [bot, setBot] = useState(null);
   const [assets, setAssets] = useState([]);
   const [loadingBot, setLoadingBot] = useState(true);
@@ -52,7 +52,8 @@ const ActiveBotAssets = () => {
       }
     };
     init();
-  }, []);
+    // recarrega quando refreshKey muda (ex.: novo bot ou ativação)
+  }, [refreshKey]);
 
   const hasNoBot = !loadingBot && !error && !bot;
   const hasNoAssets = bot && !loadingAssets && assets.length === 0;

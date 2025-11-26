@@ -1,7 +1,7 @@
 // ==== BLOCK: ACTIVE_BOT_LOGS - START ====
 import React, { useEffect, useState } from "react";
 
-const ActiveBotLogs = () => {
+const ActiveBotLogs = ({ refreshKey = 0 }) => {
   const [bot, setBot] = useState(null);
   const [logs, setLogs] = useState([]);
   const [loadingBot, setLoadingBot] = useState(true);
@@ -52,7 +52,8 @@ const ActiveBotLogs = () => {
       }
     };
     init();
-  }, []);
+    // recarrega logs quando o bot ativo muda
+  }, [refreshKey]);
 
   const hasNoBot = !loadingBot && !error && !bot;
   const hasNoLogs = bot && !loadingLogs && logs.length === 0;

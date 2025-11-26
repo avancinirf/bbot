@@ -1,7 +1,7 @@
 // ==== BLOCK: BOT_FORMS - START ====
 import React, { useEffect, useMemo, useState } from "react";
 
-const BotForms = () => {
+const BotForms = ({ onRefresh = () => {} }) => {
   const [bots, setBots] = useState([]);
   const [loadingBots, setLoadingBots] = useState(true);
   const [botsError, setBotsError] = useState(null);
@@ -112,9 +112,10 @@ const BotForms = () => {
       setInitialBalance("100");
       setStopLossPercent("40");
       setTradeMode("SIMULATED");
+      setAssetBotId(String(created.id));
 
       await loadBots();
-      window.location.reload();
+      onRefresh();
     } catch (err) {
       console.error("Erro ao criar bot:", err);
       setCreateError("Erro ao criar o bot. Confira os dados e tente novamente.");
@@ -170,7 +171,7 @@ const BotForms = () => {
       setSellPercent("5");
 
       await loadBots();
-      window.location.reload();
+      onRefresh();
     } catch (err) {
       console.error("Erro ao adicionar moeda:", err);
       setAssetError(err.message || "Erro ao adicionar a moeda ao bot.");

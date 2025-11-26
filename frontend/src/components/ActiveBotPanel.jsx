@@ -1,7 +1,7 @@
 // ==== BLOCK: ACTIVE_BOT_PANEL - START ====
 import React, { useEffect, useState } from "react";
 
-const ActiveBotPanel = () => {
+const ActiveBotPanel = ({ refreshKey = 0 }) => {
   const [bot, setBot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,7 +27,8 @@ const ActiveBotPanel = () => {
 
   useEffect(() => {
     loadActiveBot();
-  }, []);
+    // refreshKey força recarregar o bot ativo sem reload da página
+  }, [refreshKey]);
 
   const formatDateTime = (value) => {
     if (!value) return "Ainda não executado";
