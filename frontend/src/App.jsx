@@ -7,6 +7,7 @@ import ActiveBotOpportunity from "./components/ActiveBotOpportunity.jsx";
 import ActiveBotLogs from "./components/ActiveBotLogs.jsx";
 import BotsList from "./components/BotsList.jsx";
 import FooterInfo from "./components/FooterInfo.jsx";
+import BotForms from "./components/BotForms.jsx";
 // ==== BLOCK: APP_IMPORTS - END ====
 
 
@@ -15,6 +16,11 @@ import FooterInfo from "./components/FooterInfo.jsx";
 const App = () => {
   const [healthStatus, setHealthStatus] = useState("verificando...");
   const [healthError, setHealthError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const triggerRefresh = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -109,14 +115,15 @@ const App = () => {
         }}
       >
         <section>
-          <ActiveBotPanel />
-          <ActiveBotAssets />
-          <ActiveBotMarketStatus />
-          <ActiveBotOpportunity />
-          <ActiveBotLogs />
+          <ActiveBotPanel refreshKey={refreshKey} />
+          <ActiveBotAssets refreshKey={refreshKey} />
+          <ActiveBotMarketStatus refreshKey={refreshKey} />
+          <ActiveBotOpportunity refreshKey={refreshKey} />
+          <ActiveBotLogs refreshKey={refreshKey} />
         </section>
         <aside>
-          <BotsList />
+          <BotsList onRefresh={triggerRefresh} refreshKey={refreshKey} />
+          <BotForms onRefresh={triggerRefresh} />
         </aside>
       </main>
       {/* ==== BLOCK: MAIN_LAYOUT - END ==== */}

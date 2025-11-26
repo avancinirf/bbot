@@ -1,7 +1,7 @@
 // ==== BLOCK: ACTIVE_BOT_MARKET_STATUS - START ====
 import React, { useEffect, useState } from "react";
 
-const ActiveBotMarketStatus = () => {
+const ActiveBotMarketStatus = ({ refreshKey = 0 }) => {
   const [bot, setBot] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [loadingBot, setLoadingBot] = useState(true);
@@ -52,7 +52,8 @@ const ActiveBotMarketStatus = () => {
       }
     };
     init();
-  }, []);
+    // recarrega dados de mercado quando o bot ativo muda
+  }, [refreshKey]);
 
   const hasNoBot = !loadingBot && !error && !bot;
 

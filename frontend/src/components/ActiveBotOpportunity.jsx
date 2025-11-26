@@ -1,7 +1,7 @@
 // ==== BLOCK: ACTIVE_BOT_OPPORTUNITY - START ====
 import React, { useEffect, useState } from "react";
 
-const ActiveBotOpportunity = () => {
+const ActiveBotOpportunity = ({ refreshKey = 0 }) => {
   const [bot, setBot] = useState(null);
   const [opportunity, setOpportunity] = useState(null);
   const [loadingBot, setLoadingBot] = useState(true);
@@ -54,7 +54,8 @@ const ActiveBotOpportunity = () => {
       }
     };
     init();
-  }, []);
+    // força recarregar oportunidade quando o bot muda
+  }, [refreshKey]);
 
   const handleRefresh = async () => {
     if (!bot || !bot.id) return;
