@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { getBotStatus } from '../api/client'
-import type { BotStatusResponse } from '../api/client'
-
+import { getBotStatus, listTrades } from '../api/client'
+import type { BotStatusResponse, Trade } from '../api/client'
 
 type Props = {
   botId: number | null
@@ -9,35 +8,53 @@ type Props = {
 
 export const BotDetails: React.FC<Props> = ({ botId }) => {
   const [data, setData] = useState<BotStatusResponse | null>(null)
+  const [trades, setTrades] = useState<Trade[]>([])
   const [loading, setLoading] = useState(false)
+  const [tradesLoading, setTradesLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tradesError, setTradesError] = useState<string | null>(null)
+
+  const loadStatus = async (id: number) => {
+    try {
+      setError(null)
+      setLoading(true)
+      const resp = await getBotStatus(id)
+      setData(resp)
+    } catch (err: any) {
+      setError(err.message || 'Erro ao carregar status do bot')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadTrades = async (id: number) => {
+    try {
+      setTradesError(null)
+      setTradesLoading(true)
+      const resp = await listTrades(id, 20)
+      setTrades(resp)
+    } catch (err: any) {
+      setTradesError(err.message || 'Erro ao carregar trades do bot')
+    } finally {
+      setTradesLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const load = async () => {
-      if (!botId) {
-        setData(null)
-        return
-      }
-      try {
-        setError(null)
-        setLoading(true)
-        const resp = await getBotStatus(botId)
-        setData(resp)
-      } catch (err: any) {
-        setError(err.message || 'Erro ao carregar status do bot')
-      } finally {
-        setLoading(false)
-      }
+    if (!botId) {
+      setData(null)
+      setTrades([])
+      return
     }
-
-    load()
+    loadStatus(botId)
+    loadTrades(botId)
   }, [botId])
 
   if (!botId) {
     return <div className="bot-details">Selecione um bot para ver os detalhes.</div>
   }
 
-  if (loading) {
+  if (loading && !data) {
     return <div className="bot-details">Carregando detalhes do bot...</div>
   }
 
@@ -120,6 +137,55 @@ export const BotDetails: React.FC<Props> = ({ botId }) => {
                     ? pair.indicator.rsi14.toFixed(2)
                     : '-'}
                 </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <h3>Últimos trades</h3>
+      <div className="trades-header">
+        <button
+          onClick={() => botId && loadTrades(botId)}
+          disabled={tradesLoading}
+        >
+          Atualizar trades
+        </button>
+      </div>
+      {tradesError && <div className="error">{tradesError}</div>}
+      {trades.length === 0 && !tradesLoading && (
+        <div>Nenhum trade registrado ainda para este bot.</div>
+      )}
+
+      {trades.length > 0 && (
+        <table className="trades-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Side</th>
+              <th>Par</th>
+              <th>Qtd</th>
+              <th>Preço</th>
+              <th>Valor (USDT)</th>
+              <th>PnL (USDT)</th>
+              <th>Regra</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trades.map(tr => (
+              <tr key={tr.id}>
+                <td>{new Date(tr.created_at).toLocaleString()}</td>
+                <td className={tr.side === 'BUY' ? 'side-buy' : 'side-sell'}>
+                  {tr.side}
+                </td>
+                <td>{tr.symbol}</td>
+                <td>{tr.qty.toFixed(8)}</td>
+                <td>{tr.price.toFixed(2)}</td>
+                <td>{tr.value_usdt.toFixed(4)}</td>
+                <td>
+                  {tr.pnl_usdt !== null ? tr.pnl_usdt.toFixed(4) : '-'}
+                </td>
+                <td>{tr.rule_snapshot}</td>
               </tr>
             ))}
           </tbody>

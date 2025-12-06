@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { listBots, setBotStatus, runBotCycle } from '../api/client'
+import { listBots, setBotStatus, runBotCycle, blockAllBots, unblockAllBots } from '../api/client'
 import type { Bot } from '../api/client'
-
 
 type Props = {
   onSelectBot: (botId: number) => void
+  reloadToken?: number
 }
 
-export const BotList: React.FC<Props> = ({ onSelectBot }) => {
+export const BotList: React.FC<Props> = ({ onSelectBot, reloadToken }) => {
   const [bots, setBots] = useState<Bot[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,6 +29,12 @@ export const BotList: React.FC<Props> = ({ onSelectBot }) => {
     load()
   }, [])
 
+  useEffect(() => {
+    if (reloadToken !== undefined) {
+      load()
+    }
+  }, [reloadToken])
+
   const handleToggleStatus = async (bot: Bot) => {
     const newStatus = bot.status === 'online' ? 'offline' : 'online'
     try {
@@ -48,13 +54,41 @@ export const BotList: React.FC<Props> = ({ onSelectBot }) => {
     }
   }
 
+  const handleBlockAll = async () => {
+    try {
+      const res = await blockAllBots()
+      alert(`Bots bloqueados: ${res.blocked}`)
+      await load()
+    } catch (err: any) {
+      alert(err.message || 'Erro ao bloquear todos os bots')
+    }
+  }
+
+  const handleUnblockAll = async () => {
+    try {
+      const res = await unblockAllBots()
+      alert(`Bots desbloqueados: ${res.unblocked}`)
+      await load()
+    } catch (err: any) {
+      alert(err.message || 'Erro ao desbloquear todos os bots')
+    }
+  }
+
   return (
     <div className="bot-list">
       <div className="bot-list-header">
         <h2>Bots</h2>
-        <button onClick={load} disabled={loading}>
-          Atualizar
-        </button>
+        <div className="bot-list-actions">
+          <button onClick={load} disabled={loading}>
+            Atualizar
+          </button>
+          <button onClick={handleBlockAll}>
+            Bloquear todos
+          </button>
+          <button onClick={handleUnblockAll}>
+            Desbloquear todos
+          </button>
+        </div>
       </div>
 
       {error && <div className="error">{error}</div>}
