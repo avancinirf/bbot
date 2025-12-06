@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, SQLModel, select
 
 from app.db.session import get_session
-from app.db.models import Bot, BotStatus, BotPair, Trade
+from app.db.models import Bot, BotStatus, BotPair, Trade, Indicator
 
 from app.bots.engine import run_bot_cycle
 
@@ -354,3 +354,124 @@ def list_trades(
         .limit(limit)
     ).all()
     return trades
+
+@router.get("/{bot_id}/status")
+def get_bot_status(
+    bot_id: int,
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    """
+    Retorna um status detalhado do bot:
+    - dados do bot
+    - pares configurados
+    - último indicador/close por par
+    - variação vs valor_inicial
+    - resumo de equity (saldo + posições)
+    """
+    bot = session.get(Bot, bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="Bot não encontrado")
+
+    # Carrega pares do bot
+    pairs = session.exec(
+        select(BotPair).where(BotPair.bot_id == bot_id)
+    ).all()
+
+    symbols = list({p.symbol for p in pairs})
+    indicators_map: dict[str, Indicator] = {}
+
+    # Busca o último indicador para cada símbolo
+    for symbol in symbols:
+        ind = session.exec(
+            select(Indicator)
+            .where(Indicator.symbol == symbol)
+            .order_by(Indicator.open_time.desc())
+            .limit(1)
+        ).first()
+        if ind:
+            indicators_map[symbol] = ind
+
+    pairs_status: list[dict[str, Any]] = []
+
+    total_position_value_usdt = 0.0
+    total_cost_basis_usdt = 0.0
+
+    for pair in pairs:
+        ind = indicators_map.get(pair.symbol)
+        valor_atual: float | None = ind.close if ind else None
+
+        var_pct_vs_valor_inicial: float | None = None
+        if valor_atual is not None and pair.valor_inicial:
+            var_pct_vs_valor_inicial = (
+                (valor_atual - pair.valor_inicial) / pair.valor_inicial * 100.0
+            )
+
+        position_value = 0.0
+        cost_basis = 0.0
+        unrealized_pnl = None
+
+        if (
+            pair.has_open_position
+            and pair.qty_moeda > 0
+            and valor_atual is not None
+        ):
+            position_value = pair.qty_moeda * valor_atual
+            total_position_value_usdt += position_value
+
+            if pair.last_buy_price:
+                cost_basis = pair.last_buy_price * pair.qty_moeda
+                total_cost_basis_usdt += cost_basis
+                unrealized_pnl = position_value - cost_basis
+
+        pair_info = {
+            "pair_id": pair.id,
+            "symbol": pair.symbol,
+            "valor_de_trade_usdt": pair.valor_de_trade_usdt,
+            "valor_inicial": pair.valor_inicial,
+            "porcentagem_compra": pair.porcentagem_compra,
+            "porcentagem_venda": pair.porcentagem_venda,
+            "has_open_position": pair.has_open_position,
+            "qty_moeda": pair.qty_moeda,
+            "last_buy_price": pair.last_buy_price,
+            "last_sell_price": pair.last_sell_price,
+            "valor_atual": valor_atual,
+            "var_pct_vs_valor_inicial": var_pct_vs_valor_inicial,
+            "unrealized_position_value_usdt": position_value,
+            "unrealized_pnl_usdt": unrealized_pnl,
+            "indicator": {
+                "open_time": ind.open_time.isoformat() if ind else None,
+                "close": ind.close if ind else None,
+                "ema9": ind.ema9 if ind else None,
+                "ema21": ind.ema21 if ind else None,
+                "rsi14": ind.rsi14 if ind else None,
+                "macd": ind.macd if ind else None,
+                "macd_signal": ind.macd_signal if ind else None,
+                "macd_hist": ind.macd_hist if ind else None,
+                "adx": ind.adx if ind else None,
+                "trend_score": ind.trend_score if ind else None,
+                "trend_label": ind.trend_label if ind else None,
+                "market_signal_compra": ind.market_signal_compra if ind else None,
+                "market_signal_venda": ind.market_signal_venda if ind else None,
+            } if ind else None,
+        }
+
+        pairs_status.append(pair_info)
+
+    total_equity_usdt = bot.saldo_usdt_livre + total_position_value_usdt
+    unrealized_pnl_total = None
+    if total_cost_basis_usdt > 0:
+        unrealized_pnl_total = total_position_value_usdt - total_cost_basis_usdt
+
+    summary = {
+        "saldo_usdt_limit": bot.saldo_usdt_limit,
+        "saldo_usdt_livre": bot.saldo_usdt_livre,
+        "total_position_value_usdt": total_position_value_usdt,
+        "total_equity_usdt": total_equity_usdt,
+        "unrealized_pnl_usdt": unrealized_pnl_total,
+    }
+
+    return {
+        "bot": bot,
+        "summary": summary,
+        "pairs": pairs_status,
+    }
