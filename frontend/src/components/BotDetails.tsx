@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { getBotStatus, listTrades } from '../api/client'
+import {
+  getBotStatus,
+  listTrades,
+  getAvailablePairs,
+  addPairToBot,
+  syncMarket,
+  runBotCycle,
+} from '../api/client'
 import type { BotStatusResponse, Trade } from '../api/client'
 
 type Props = {
@@ -13,6 +20,17 @@ export const BotDetails: React.FC<Props> = ({ botId }) => {
   const [tradesLoading, setTradesLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tradesError, setTradesError] = useState<string | null>(null)
+
+  const [availablePairs, setAvailablePairs] = useState<string[]>([])
+  const [newPairSymbol, setNewPairSymbol] = useState<string>('')
+  const [newPairTradeValue, setNewPairTradeValue] = useState<number>(10)
+  const [newPairPctCompra, setNewPairPctCompra] = useState<number>(0)
+  const [newPairPctVenda, setNewPairPctVenda] = useState<number>(5)
+  const [pairLoading, setPairLoading] = useState(false)
+  const [pairError, setPairError] = useState<string | null>(null)
+
+  const [autoLoading, setAutoLoading] = useState(false)
+  const [autoError, setAutoError] = useState<string | null>(null)
 
   const loadStatus = async (id: number) => {
     try {
@@ -40,6 +58,22 @@ export const BotDetails: React.FC<Props> = ({ botId }) => {
     }
   }
 
+  const loadAvailablePairs = async () => {
+    try {
+      const list = await getAvailablePairs()
+      setAvailablePairs(list)
+      if (!newPairSymbol && list.length > 0) {
+        setNewPairSymbol(list[0])
+      }
+    } catch (err: any) {
+      console.error('Erro ao carregar pares disponíveis', err)
+    }
+  }
+
+  useEffect(() => {
+    loadAvailablePairs()
+  }, [])
+
   useEffect(() => {
     if (!botId) {
       setData(null)
@@ -49,6 +83,64 @@ export const BotDetails: React.FC<Props> = ({ botId }) => {
     loadStatus(botId)
     loadTrades(botId)
   }, [botId])
+
+  const handleAddPair = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!botId || !newPairSymbol) return
+
+    if (newPairTradeValue <= 0) {
+      setPairError('Valor de trade deve ser maior que zero.')
+      return
+    }
+
+    try {
+      setPairError(null)
+      setPairLoading(true)
+      await addPairToBot(botId, {
+        symbol: newPairSymbol,
+        valor_de_trade_usdt: newPairTradeValue,
+        porcentagem_compra: newPairPctCompra,
+        porcentagem_venda: newPairPctVenda,
+      })
+      await loadStatus(botId)
+      alert('Par adicionado ao bot.')
+    } catch (err: any) {
+      setPairError(err.message || 'Erro ao adicionar par')
+    } finally {
+      setPairLoading(false)
+    }
+  }
+
+  const handleSyncAndRun = async () => {
+    if (!botId || !data) return
+
+    const symbols = data.pairs.map(p => p.symbol)
+    if (symbols.length === 0) {
+      setAutoError('Este bot não tem pares para sincronizar.')
+      return
+    }
+
+    try {
+      setAutoError(null)
+      setAutoLoading(true)
+
+      // Sincroniza mercado para todos os símbolos do bot
+      await Promise.all(symbols.map(symbol => syncMarket(symbol, 200)))
+
+      // Executa 1 ciclo do bot
+      await runBotCycle(botId)
+
+      // Recarrega status e trades
+      await loadStatus(botId)
+      await loadTrades(botId)
+
+      alert('Mercado sincronizado e ciclo executado.')
+    } catch (err: any) {
+      setAutoError(err.message || 'Erro ao sincronizar mercado e executar ciclo')
+    } finally {
+      setAutoLoading(false)
+    }
+  }
 
   if (!botId) {
     return <div className="bot-details">Selecione um bot para ver os detalhes.</div>
@@ -73,7 +165,8 @@ export const BotDetails: React.FC<Props> = ({ botId }) => {
       <h2>Bot: {bot.name}</h2>
       <div className="bot-details-summary">
         <div>
-          <strong>Status:</strong> <span className={`status-${bot.status}`}>{bot.status.toUpperCase()}</span>
+          <strong>Status:</strong>{' '}
+          <span className={`status-${bot.status}`}>{bot.status.toUpperCase()}</span>
         </div>
         <div>
           <strong>Saldo limite:</strong> {summary.saldo_usdt_limit.toFixed(2)} USDT
@@ -95,7 +188,73 @@ export const BotDetails: React.FC<Props> = ({ botId }) => {
         </div>
       </div>
 
+      <div className="add-pair-form">
+        <h3>Adicionar par ao bot</h3>
+        {pairError && <div className="error">{pairError}</div>}
+        <form onSubmit={handleAddPair}>
+          <label>
+            Par
+            <select
+              value={newPairSymbol}
+              onChange={e => setNewPairSymbol(e.target.value)}
+            >
+              <option value="">Selecione...</option>
+              {availablePairs.map(p => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            Valor trade (USDT)
+            <input
+              type="number"
+              step="0.01"
+              min={0}
+              value={newPairTradeValue}
+              onChange={e => setNewPairTradeValue(Number(e.target.value))}
+            />
+          </label>
+
+          <label>
+            % compra (≤ 0)
+            <input
+              type="number"
+              step="0.1"
+              value={newPairPctCompra}
+              onChange={e => setNewPairPctCompra(Number(e.target.value))}
+            />
+          </label>
+
+          <label>
+            % venda (≥ 0)
+            <input
+              type="number"
+              step="0.1"
+              value={newPairPctVenda}
+              onChange={e => setNewPairPctVenda(Number(e.target.value))}
+            />
+          </label>
+
+          <div className="add-pair-submit">
+            <button type="submit" disabled={pairLoading || !newPairSymbol}>
+              {pairLoading ? 'Adicionando...' : 'Adicionar par'}
+            </button>
+          </div>
+        </form>
+      </div>
+
       <h3>Moedas do bot</h3>
+
+      <div className="bot-details-actions">
+        <button onClick={handleSyncAndRun} disabled={autoLoading || pairs.length === 0}>
+          {autoLoading ? 'Sincronizando...' : 'Sync mercado + rodar ciclo'}
+        </button>
+        {autoError && <span className="error">{autoError}</span>}
+      </div>
+
       {pairs.length === 0 && <div>Este bot não tem pares configurados.</div>}
 
       {pairs.length > 0 && (
@@ -145,10 +304,7 @@ export const BotDetails: React.FC<Props> = ({ botId }) => {
 
       <h3>Últimos trades</h3>
       <div className="trades-header">
-        <button
-          onClick={() => botId && loadTrades(botId)}
-          disabled={tradesLoading}
-        >
+        <button onClick={() => botId && loadTrades(botId)} disabled={tradesLoading}>
           Atualizar trades
         </button>
       </div>
@@ -182,9 +338,7 @@ export const BotDetails: React.FC<Props> = ({ botId }) => {
                 <td>{tr.qty.toFixed(8)}</td>
                 <td>{tr.price.toFixed(2)}</td>
                 <td>{tr.value_usdt.toFixed(4)}</td>
-                <td>
-                  {tr.pnl_usdt !== null ? tr.pnl_usdt.toFixed(4) : '-'}
-                </td>
+                <td>{tr.pnl_usdt !== null ? tr.pnl_usdt.toFixed(4) : '-'}</td>
                 <td>{tr.rule_snapshot}</td>
               </tr>
             ))}

@@ -239,3 +239,51 @@ button:disabled {
   color: #ef4444;
   font-weight: 600;
 }
+
+.add-pair-form {
+  border-top: 1px solid #1f2937;
+  border-bottom: 1px solid #1f2937;
+  padding: 8px 0 10px 0;
+  margin: 8px 0 10px 0;
+}
+
+.add-pair-form h3 {
+  margin: 0 0 6px 0;
+  font-size: 1rem;
+}
+
+.add-pair-form form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px 10px;
+  font-size: 0.8rem;
+  align-items: flex-end;
+}
+
+.add-pair-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.add-pair-form select,
+.add-pair-form input {
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid #1f2937;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.8rem;
+}
+
+.add-pair-submit {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.bot-details-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}

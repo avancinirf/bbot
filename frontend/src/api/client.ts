@@ -97,6 +97,13 @@ export type BotCreatePayload = {
   venda_mercado: boolean
 }
 
+export type BotPairCreatePayload = {
+  symbol: string
+  valor_de_trade_usdt: number
+  porcentagem_compra: number
+  porcentagem_venda: number
+}
+
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: {
@@ -171,4 +178,26 @@ export function unblockAllBots(): Promise<{ unblocked: number }> {
   return apiFetch<{ unblocked: number }>('/api/bots/unblock_all', {
     method: 'POST',
   })
+}
+
+// -------- Pairs --------
+
+export function getAvailablePairs(): Promise<string[]> {
+  return apiFetch<string[]>('/api/bots/available_pairs')
+}
+
+export function addPairToBot(botId: number, payload: BotPairCreatePayload): Promise<any> {
+  return apiFetch<any>(`/api/bots/${botId}/pairs`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function syncMarket(symbol: string, limit = 200): Promise<{
+  symbol: string
+  inserted_candles: number
+  total_candles: number
+  upserted_indicators: number
+}> {
+  return apiFetch(`/api/market/sync/${symbol}?limit=${limit}`)
 }
