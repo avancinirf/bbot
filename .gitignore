@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.so
+
+# Virtual env
+venv/
+.env.local
+
+# Editor/OS
+.DS_Store
+.vscode/
+.idea/
+
+# Docker
+*.log
+
+# App
+.env
+data/
