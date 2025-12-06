@@ -1,13 +1,13 @@
-from datetime import datetime
-from typing import Optional, Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, SQLModel, select
+from sqlalchemy import func
+from sqlmodel import SQLModel, Field, Session, select
 
 from app.db.session import get_session
 from app.db.models import Bot, BotStatus, BotPair, Trade, Indicator
-
 from app.bots.engine import run_bot_cycle
+
 
 
 router = APIRouter(prefix="/bots", tags=["bots"])
@@ -221,6 +221,96 @@ def unblock_all_bots(session: Session = Depends(get_session)) -> dict:
             count += 1
     session.commit()
     return {"unblocked": count}
+
+
+@router.get("/{bot_id}/pnl")
+def get_bot_pnl(
+    bot_id: int,
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    """
+    Retorna um resumo simples de PnL realizado do bot:
+    - soma dos PnL (apenas SELL, onde pnl_usdt != null)
+    - quantidade de trades, wins, losses
+    - PnL agrupado por dia
+    """
+    bot = session.get(Bot, bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="Bot não encontrado")
+
+    # PnL total realizado (somente onde pnl_usdt não é nulo)
+    total_realized = (
+        session.exec(
+            select(func.coalesce(func.sum(Trade.pnl_usdt), 0.0)).where(
+                Trade.bot_id == bot_id,
+                Trade.pnl_usdt != None,  # noqa: E711
+            )
+        ).first()
+        or 0.0
+    )
+
+    # Total de trades
+    total_trades = (
+        session.exec(
+            select(func.count(Trade.id)).where(Trade.bot_id == bot_id)
+        ).first()
+        or 0
+    )
+
+    # Trades com lucro (pnl_usdt > 0)
+    winning_trades = (
+        session.exec(
+            select(func.count(Trade.id)).where(
+                Trade.bot_id == bot_id,
+                Trade.pnl_usdt > 0,
+            )
+        ).first()
+        or 0
+    )
+
+    # Trades com prejuízo (pnl_usdt < 0)
+    losing_trades = (
+        session.exec(
+            select(func.count(Trade.id)).where(
+                Trade.bot_id == bot_id,
+                Trade.pnl_usdt < 0,
+            )
+        ).first()
+        or 0
+    )
+
+    # PnL por dia (somente onde pnl_usdt não é nulo)
+    by_day_rows = session.exec(
+        select(
+            func.date(Trade.created_at),
+            func.coalesce(func.sum(Trade.pnl_usdt), 0.0),
+        )
+        .where(
+            Trade.bot_id == bot_id,
+            Trade.pnl_usdt != None,  # noqa: E711
+        )
+        .group_by(func.date(Trade.created_at))
+        .order_by(func.date(Trade.created_at))
+    ).all()
+
+    by_day = [
+        {
+            "date": str(row[0]),
+            "realized_pnl_usdt": float(row[1] or 0.0),
+        }
+        for row in by_day_rows
+    ]
+
+    return {
+        "bot_id": bot.id,
+        "bot_name": bot.name,
+        "total_realized_pnl_usdt": float(total_realized),
+        "total_trades": int(total_trades),
+        "winning_trades": int(winning_trades),
+        "losing_trades": int(losing_trades),
+        "by_day": by_day,
+    }
+
 
 
 # --------------------------------------------------------------------

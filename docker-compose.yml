@@ -3,14 +3,11 @@ version: "3.9"
 services:
   app:
     build: .
-    container_name: binance_bot_app
-    working_dir: /app
-    volumes:
-      - ./backend:/app
-      - ./data:/app/data
-      - ./.env:/app/.env:ro
+    container_name: bbot-app
     ports:
       - "8000:8000"
-    environment:
-      - PYTHONUNBUFFERED=1
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
     restart: unless-stopped
