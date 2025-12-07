@@ -1,0 +1,247 @@
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #111827;
+  background-color: #f3f4f6;
+}
+
+body {
+  margin: 0;
+  font-size: 14px; /* fonte mais pequena no sistema todo */
+}
+
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1.25rem;
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+.app-title h1 {
+  margin: 0;
+  font-size: 1.1rem; /* menor */
+}
+
+.app-title .app-mode {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.system-status {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+.system-status.on {
+  background-color: #16a34a;
+  color: #ecfdf3;
+}
+.system-status.off {
+  background-color: #b91c1c;
+  color: #fef2f2;
+}
+
+.account-info {
+  padding: 0.75rem 1.25rem;
+  background-color: #e5e7eb;
+  border-bottom: 1px solid #d1d5db;
+  font-size: 0.85rem;
+}
+
+.account-info h2 {
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  padding: 0.75rem 1.25rem 1.25rem;
+  gap: 0.75rem;
+}
+
+.left-panel {
+  flex: 0 0 40%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.right-panel {
+  flex: 0 0 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.panel {
+  background-color: #ffffff;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1rem;
+}
+
+.bot-form .form-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.4rem;
+}
+
+.bot-form label {
+  font-size: 0.8rem;
+  margin-bottom: 0.2rem;
+}
+
+.bot-form input[type="text"],
+.bot-form input[type="number"] {
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.375rem;
+  border: 1px solid #d1d5db;
+  font-size: 0.85rem;
+}
+
+.form-row-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-row small {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.form-actions {
+  margin-top: 0.6rem;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.btn {
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  border: none;
+  background-color: #1d4ed8;
+  color: #f9fafb;
+  font-size: 0.8rem; /* menor */
+  cursor: pointer;
+}
+.btn:hover {
+  background-color: #1e40af;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-secondary {
+  background-color: #6b7280;
+}
+.btn-secondary:hover {
+  background-color: #4b5563;
+}
+
+/* Botão extra pequeno (Mostrar/Ocultar saldos) */
+.btn-xs {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.7rem;
+}
+
+.bot-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem; /* menor na tabela */
+}
+.bot-table th,
+.bot-table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.3rem 0.4rem;
+  text-align: left;
+}
+.bot-table th {
+  background-color: #f9fafb;
+}
+
+/* Ações do bot: ocupar 100% da largura na célula */
+.bot-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 0.25rem;
+}
+.bot-actions .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.bot-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.bot-card {
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 0.6rem;
+  background-color: #f9fafb;
+  font-size: 0.8rem; /* menor nos cards */
+}
+
+.error {
+  color: #b91c1c;
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+}
+
+/* --- Conta Binance: tabela com botão e scroll --- */
+
+.account-balances-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.account-balances {
+  margin-top: 0.3rem;
+  max-height: 220px; /* altura máxima do bloco de saldos */
+  overflow-y: auto;
+  border-radius: 0.5rem;
+}
+
+/* --- Trades dentro de cada bot --- */
+
+.bot-trades-container {
+  margin-top: 0.35rem;
+  padding: 0.4rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+.bot-trades-table-wrapper {
+  max-height: 200px; /* altura fixa aproximada */
+  overflow-y: auto;
+  margin-top: 0.25rem;
+}
