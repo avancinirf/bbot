@@ -40,19 +40,19 @@ def get_exchange_info(symbol: Optional[str] = None) -> dict:
 
 def get_symbol_price(symbol: str) -> float:
     """
-    Retorna o preço atual do símbolo (ticker price) na Binance.
-    """
-    symbol = symbol.upper().strip()
-    if not symbol:
-        raise ValueError("Símbolo vazio inválido.")
+    Busca o último preço de um símbolo na Binance Spot.
 
-    resp = httpx.get(
-        f"{BASE_URL}/api/v3/ticker/price",
-        params={"symbol": symbol},
-        timeout=10.0,
-    )
-    resp.raise_for_status()
-    data = resp.json()
+    Usa um timeout configurável (se existir em settings) ou 10s por padrão,
+    para evitar travar o event loop do FastAPI/uvicorn.
+    """
+    url = f"{BASE_URL}/api/v3/ticker/price"
+    params = {"symbol": symbol.upper()}
+
+    with httpx.Client(timeout=getattr(settings, "binance_http_timeout", 10.0)) as client:
+        resp = client.get(url, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+
     return float(data["price"])
 
 
@@ -96,8 +96,8 @@ def get_klines(
     for row in data:
         open_time_ms = row[0]
         close_time_ms = row[6]
-        open_time = datetime.fromtimestamp(open_time_ms / 1000.0, tz=timezone.utc)
-        close_time = datetime.fromtimestamp(close_time_ms / 1000.0, tz=timezone.utc)
+        open_time = datetime.fromtimestamp(open_time_ms / 1000.0, tz=timezone.utc).replace(tzinfo=None)
+        close_time = datetime.fromtimestamp(close_time_ms / 1000.0, tz=timezone.utc).replace(tzinfo=None)
 
         kline = {
             "open_time": open_time,
