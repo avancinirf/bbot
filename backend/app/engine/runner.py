@@ -11,10 +11,27 @@ from app.core.state import get_system_running
 from app.db.session import engine
 from app.models.bot import Bot
 from app.models.trade import Trade
+from app.models.indicator import Indicator
 from app.binance.client import get_symbol_price
 
 
 ENGINE_INTERVAL_SECONDS = 5  # tempo entre ciclos do engine (pode ajustar depois)
+
+
+def get_latest_indicator_for_symbol(
+    session: Session,
+    symbol: str,
+    interval: str = "5m",
+) -> Indicator | None:
+    """
+    Busca o último indicador salvo para o símbolo/intervalo.
+    Pode retornar None (sem dados ainda).
+    """
+    return session.exec(
+        select(Indicator)
+        .where(Indicator.symbol == symbol, Indicator.interval == interval)
+        .order_by(Indicator.close_time.desc())
+    ).first()
 
 
 async def bot_engine_loop() -> None:
@@ -79,32 +96,49 @@ async def run_engine_cycle() -> None:
                 )
                 continue
 
+            indicator = get_latest_indicator_for_symbol(session, bot.symbol)
+
             print(
                 f"  - Bot id={bot.id} name={bot.name} symbol={bot.symbol} "
                 f"price_atual={price} saldo_livre={bot.saldo_usdt_livre} "
-                f"has_open_position={bot.has_open_position}"
+                f"has_open_position={bot.has_open_position} "
+                f"indicator_ok={indicator is not None}"
             )
 
-            process_bot_cycle(bot, session, settings, price)
+            process_bot_cycle(bot, session, settings, price, indicator)
 
 
-def process_bot_cycle(bot: Bot, session: Session, settings, price: float) -> None:
+def process_bot_cycle(
+    bot: Bot,
+    session: Session,
+    settings,
+    price: float,
+    indicator: Indicator | None,
+) -> None:
     """
     Decide o que fazer com o bot neste ciclo:
     - Se tem posição aberta → checa stop-loss e take profit.
     - Se NÃO tem posição aberta → aplica comprar_ao_iniciar / porcentagem_compra.
     """
     if bot.has_open_position:
-        handle_position(bot, session, settings, price)
+        handle_position(bot, session, settings, price, indicator)
     else:
-        handle_no_position(bot, session, settings, price)
+        handle_no_position(bot, session, settings, price, indicator)
 
 
-def handle_no_position(bot: Bot, session: Session, settings, price: float) -> None:
+def handle_no_position(
+    bot: Bot,
+    session: Session,
+    settings,
+    price: float,
+    indicator: Indicator | None,
+) -> None:
     """
     Sem posição aberta:
-    - Se nunca fez trade e comprar_ao_iniciar = True → compra inicial.
-    - Caso contrário, se porcentagem_compra > 0 → compra quando cair X% abaixo do valor_inicial.
+    - Se nunca fez trade e comprar_ao_iniciar = True → compra inicial
+      (opcionalmente respeitando compra_mercado + market_signal_compra).
+    - Caso contrário, se porcentagem_compra > 0 → compra quando cair X% abaixo
+      do valor_inicial (opcionalmente respeitando compra_mercado + market_signal_compra).
     """
     has_trades = (
         session.exec(select(Trade.id).where(Trade.bot_id == bot.id)).first()
@@ -113,6 +147,15 @@ def handle_no_position(bot: Bot, session: Session, settings, price: float) -> No
 
     # 1) Primeira entrada: comprar_ao_iniciar
     if (not has_trades) and bot.comprar_ao_iniciar:
+        if bot.compra_mercado:
+            if indicator is None or indicator.market_signal_compra is not True:
+                print(
+                    f"[ENGINE] Bot id={bot.id} comprar_ao_iniciar=True, "
+                    "mas market_signal_compra não é True ou não há indicador. "
+                    "Ignorando compra inicial."
+                )
+                return
+
         print(
             f"[ENGINE] Bot id={bot.id} sem trades anteriores e "
             f"comprar_ao_iniciar=True → executando COMPRA inicial."
@@ -138,6 +181,15 @@ def handle_no_position(bot: Bot, session: Session, settings, price: float) -> No
         var_pct = (price - bot.valor_inicial) / bot.valor_inicial * 100.0
 
         if var_pct <= -perc_compra:
+            if bot.compra_mercado:
+                if indicator is None or indicator.market_signal_compra is not True:
+                    print(
+                        f"[ENGINE] Bot id={bot.id} condição de porcentagem_compra "
+                        "atingida, mas market_signal_compra não é True ou não há "
+                        "indicador. Compra ignorada."
+                    )
+                    return
+
             print(
                 f"[ENGINE] Bot id={bot.id} COMPRA por porcentagem_compra! "
                 f"valor_inicial={bot.valor_inicial} price_atual={price} "
@@ -149,16 +201,24 @@ def handle_no_position(bot: Bot, session: Session, settings, price: float) -> No
     print(
         f"[ENGINE] Bot id={bot.id} sem posição aberta; "
         f"comprar_ao_iniciar={bot.comprar_ao_iniciar}, "
-        f"porcentagem_compra={bot.porcentagem_compra}. "
+        f"porcentagem_compra={bot.porcentagem_compra}, "
+        f"compra_mercado={bot.compra_mercado}. "
         "Nenhuma regra de compra acionada neste ciclo."
     )
 
 
-def handle_position(bot: Bot, session: Session, settings, price: float) -> None:
+def handle_position(
+    bot: Bot,
+    session: Session,
+    settings,
+    price: float,
+    indicator: Indicator | None,
+) -> None:
     """
     Com posição aberta:
-    - Checa STOP LOSS.
-    - Se não disparar stop-loss, checa TAKE PROFIT (porcentagem_venda).
+    - Checa STOP LOSS (independente de indicador).
+    - Se não disparar stop-loss, checa TAKE PROFIT (porcentagem_venda),
+      opcionalmente respeitando venda_mercado + market_signal_venda.
     """
     # 1) STOP LOSS
     stop_loss_percent = bot.stop_loss_percent or 0.0
@@ -196,6 +256,15 @@ def handle_position(bot: Bot, session: Session, settings, price: float) -> None:
         var_pct_tp = (price - base_price) / base_price * 100.0
 
         if var_pct_tp >= take_profit:
+            if bot.venda_mercado:
+                if indicator is None or indicator.market_signal_venda is not True:
+                    print(
+                        f"[ENGINE] Bot id={bot.id} TAKE PROFIT preço atingido, "
+                        "mas market_signal_venda não é True ou não há indicador. "
+                        "Venda ignorada."
+                    )
+                    return
+
             print(
                 f"[ENGINE] Bot id={bot.id} TAKE PROFIT disparado! "
                 f"base_price={base_price} price_atual={price} "
