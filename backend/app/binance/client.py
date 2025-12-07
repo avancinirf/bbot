@@ -3,10 +3,11 @@ from __future__ import annotations
 import hashlib
 import hmac
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from urllib.parse import urlencode
 
 import httpx
+from datetime import datetime, timezone
 
 from app.core.config import get_settings
 
@@ -73,6 +74,44 @@ def validate_symbol(symbol: str) -> bool:
 
     syms = data.get("symbols", [])
     return any(s.get("symbol") == symbol for s in syms)
+
+
+def get_klines(
+    symbol: str,
+    interval: str = "5m",
+    limit: int = 200,
+) -> list[dict]:
+    """
+    Busca candles (klines) da Binance Spot.
+    """
+    url = f"{BASE_URL}/api/v3/klines"
+    params = {"symbol": symbol, "interval": interval, "limit": limit}
+
+    with httpx.Client(timeout=getattr(settings, "binance_http_timeout", 10.0)) as client:
+        resp = client.get(url, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+
+    klines: list[dict] = []
+    for row in data:
+        open_time_ms = row[0]
+        close_time_ms = row[6]
+        open_time = datetime.fromtimestamp(open_time_ms / 1000.0, tz=timezone.utc)
+        close_time = datetime.fromtimestamp(close_time_ms / 1000.0, tz=timezone.utc)
+
+        kline = {
+            "open_time": open_time,
+            "close_time": close_time,
+            "open": float(row[1]),
+            "high": float(row[2]),
+            "low": float(row[3]),
+            "close": float(row[4]),
+            "volume": float(row[5]),
+        }
+        klines.append(kline)
+
+    return klines
+
 
 
 def _signed_request(method: str, path: str, params: Optional[Dict[str, Any]] = None) -> dict:
