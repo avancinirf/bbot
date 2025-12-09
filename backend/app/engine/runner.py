@@ -13,9 +13,14 @@ from app.models.bot import Bot
 from app.models.trade import Trade
 from app.models.indicator import Indicator
 from app.binance.client import get_symbol_price
+from app.indicators.service import sync_indicators_for_symbol
 
 
 ENGINE_INTERVAL_SECONDS = 5  # tempo entre ciclos do engine (pode ajustar depois)
+INDICATOR_SYNC_MIN_INTERVAL_SECONDS = 60  # mínimo de 60s entre syncs por símbolo
+
+# memória local do processo: última vez que sincronizamos indicadores por símbolo
+_last_indicator_sync_by_symbol: dict[str, datetime] = {}
 
 
 def get_latest_indicator_for_symbol(
@@ -58,12 +63,15 @@ async def run_engine_cycle() -> None:
     Um ciclo do engine:
     - Se o sistema estiver desligado, não faz nada.
     - Se ligado, busca bots online e não bloqueados e aplica a lógica.
+    - Antes de processar bots, sincroniza indicadores 5m para cada símbolo,
+      respeitando um intervalo mínimo entre syncs.
     """
     if not get_system_running():
         return
 
     settings = get_settings()
-    now = datetime.utcnow().isoformat(timespec="seconds")
+    now_dt = datetime.utcnow()
+    now = now_dt.isoformat(timespec="seconds")
     print(f"[ENGINE] Ciclo iniciado em {now} (UTC)")
 
     with Session(engine) as session:
@@ -77,6 +85,36 @@ async def run_engine_cycle() -> None:
         if not bots:
             print("[ENGINE] Nenhum bot elegível (online e não bloqueado).")
             return
+
+        # --- sincroniza indicadores por símbolo (uma vez a cada X segundos) ---
+        symbols = sorted({bot.symbol for bot in bots})
+        for symbol in symbols:
+            last_sync = _last_indicator_sync_by_symbol.get(symbol)
+            delta_ok = (
+                not last_sync
+                or (now_dt - last_sync).total_seconds()
+                >= INDICATOR_SYNC_MIN_INTERVAL_SECONDS
+            )
+
+            if not delta_ok:
+                continue
+
+            try:
+                inserted = sync_indicators_for_symbol(
+                    symbol=symbol,
+                    interval="5m",
+                    limit=200,
+                )
+                _last_indicator_sync_by_symbol[symbol] = now_dt
+                print(
+                    f"[ENGINE] Indicadores sincronizados para {symbol}: "
+                    f"inserted={inserted}"
+                )
+            except Exception as e:
+                print(
+                    f"[ENGINE] ERRO ao sincronizar indicadores para {symbol}: "
+                    f"{e.__class__.__name__}: {e}"
+                )
 
         print(f"[ENGINE] Encontrados {len(bots)} bot(s) elegível(is) para este ciclo:")
 
