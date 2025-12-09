@@ -328,7 +328,7 @@ def simulate_buy(bot: Bot, session: Session, settings, price: float) -> None:
     COMPRA simulada:
     - Checa saldo virtual (saldo_usdt_livre vs valor_de_trade_usdt).
     - Atualiza posição e saldo virtual.
-    - Registra Trade BUY.
+    - Registra Trade BUY, com taxa simulada (fee_amount / fee_asset).
     """
     if bot.saldo_usdt_livre < bot.valor_de_trade_usdt:
         print(
@@ -344,11 +344,17 @@ def simulate_buy(bot: Bot, session: Session, settings, price: float) -> None:
 
     qty = valor_trade / price
 
+    # Atualiza posição virtual
     bot.has_open_position = True
     bot.qty_moeda += qty
     bot.saldo_usdt_livre -= valor_trade
     bot.last_buy_price = price
     bot.valor_inicial = price
+
+    # Taxa simulada da Binance (apenas informativa)
+    fee_rate = getattr(settings, "binance_fee_rate", 0.001)  # 0.1% por padrão
+    fee_amount = valor_trade * fee_rate
+    fee_asset = "USDT"
 
     trade = Trade(
         bot_id=bot.id,
@@ -358,8 +364,8 @@ def simulate_buy(bot: Bot, session: Session, settings, price: float) -> None:
         qty=qty,
         quote_qty=valor_trade,
         is_simulated=(settings.app_mode == "simulation"),
-        fee_amount=None,
-        fee_asset=None,
+        fee_amount=fee_amount,
+        fee_asset=fee_asset,
         realized_pnl=None,
         info="Simulated BUY executed by engine",
     )
@@ -372,6 +378,7 @@ def simulate_buy(bot: Bot, session: Session, settings, price: float) -> None:
     print(
         f"[ENGINE] Bot id={bot.id} COMPRA SIMULADA executada: "
         f"price={price}, qty={qty}, valor={valor_trade}, "
+        f"fee={fee_amount} {fee_asset}, "
         f"saldo_livre_restante={bot.saldo_usdt_livre}"
     )
 
@@ -386,7 +393,8 @@ def simulate_sell(
     """
     VENDA simulada de toda a posição:
     - Atualiza saldo virtual.
-    - Calcula P/L realizado.
+    - Calcula P/L realizado (sem descontar taxa).
+    - Registra Trade SELL com taxa simulada (fee_amount / fee_asset).
     - Se for stop-loss, bloqueia e desliga o bot.
     """
     if not bot.has_open_position or bot.qty_moeda <= 0:
@@ -403,10 +411,12 @@ def simulate_sell(
 
     quote_value = qty * price
 
+    # P/L realizado (bruto, sem taxa)
     base_price = bot.last_buy_price or bot.valor_inicial or price
     cost = qty * base_price
     realized_pnl = quote_value - cost
 
+    # Atualiza posição virtual
     bot.has_open_position = False
     bot.qty_moeda = 0.0
     bot.saldo_usdt_livre += quote_value
@@ -416,6 +426,11 @@ def simulate_sell(
     if reason == "stop_loss_triggered":
         bot.blocked = True
         bot.status = "offline"
+
+    # Taxa simulada da Binance (apenas informativa)
+    fee_rate = getattr(settings, "binance_fee_rate", 0.001)  # 0.1% por padrão
+    fee_amount = quote_value * fee_rate
+    fee_asset = "USDT"
 
     info_msg = "Simulated SELL executed by engine"
     if reason == "stop_loss_triggered":
@@ -433,8 +448,8 @@ def simulate_sell(
         qty=qty,
         quote_qty=quote_value,
         is_simulated=(settings.app_mode == "simulation"),
-        fee_amount=None,
-        fee_asset=None,
+        fee_amount=fee_amount,
+        fee_asset=fee_asset,
         realized_pnl=realized_pnl,
         info=info_msg,
     )
@@ -447,6 +462,7 @@ def simulate_sell(
     print(
         f"[ENGINE] Bot id={bot.id} VENDA SIMULADA executada: "
         f"reason={reason}, price={price}, qty={qty}, valor={quote_value}, "
-        f"realized_pnl={realized_pnl}, saldo_livre={bot.saldo_usdt_livre}, "
+        f"realized_pnl={realized_pnl}, fee={fee_amount} {fee_asset}, "
+        f"saldo_livre={bot.saldo_usdt_livre}, "
         f"blocked={bot.blocked}, status={bot.status}"
     )
