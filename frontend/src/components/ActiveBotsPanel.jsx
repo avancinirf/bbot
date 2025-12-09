@@ -1,6 +1,102 @@
 import { useEffect, useState } from "react";
 import { getLatestIndicator } from "../api/indicators";
 
+function buildAnalysis(bot, ind) {
+  if (!ind) {
+    return "Sem indicadores suficientes para análise neste símbolo.";
+  }
+
+  const parts = [];
+
+  // 1) Sinal de mercado
+  if (ind.market_signal_compra) {
+    parts.push(
+      "Sinal de COMPRA ativo: modelo indica viés altista no curto prazo."
+    );
+  } else if (ind.market_signal_venda) {
+    parts.push(
+      "Sinal de VENDA ativo: modelo indica viés baixista no curto prazo."
+    );
+  } else {
+    parts.push("Sem sinal claro de compra ou venda neste momento.");
+  }
+
+  // 2) Tendência geral
+  const trend = (ind.trend_label || "").toLowerCase();
+  if (trend === "bullish") {
+    parts.push(
+      "Tendência: bullish (alta). Preço acima das médias, viés positivo."
+    );
+  } else if (trend === "bearish") {
+    parts.push(
+      "Tendência: bearish (baixa). Preço abaixo das médias, viés negativo."
+    );
+  } else if (trend === "neutral") {
+    parts.push(
+      "Tendência: neutra. Mercado mais lateral ou sem direção definida."
+    );
+  } else {
+    parts.push("Tendência: não determinada pelos indicadores atuais.");
+  }
+
+  // 3) RSI
+  if (ind.rsi14 != null) {
+    const rsi = Number(ind.rsi14);
+    if (rsi >= 70) {
+      parts.push(
+        `RSI em zona de sobrecompra (${rsi.toFixed(
+          2
+        )}). Pode haver risco de correção.`
+      );
+    } else if (rsi <= 30) {
+      parts.push(
+        `RSI em zona de sobrevenda (${rsi.toFixed(
+          2
+        )}). Mercado pode estar esticado para baixo.`
+      );
+    } else {
+      parts.push(
+        `RSI em zona neutra (${rsi.toFixed(
+          2
+        )}). Sem excesso claro de compra ou venda.`
+      );
+    }
+  }
+
+  // 4) MACD hist (força/momentum)
+  if (ind.macd_hist != null) {
+    const h = Number(ind.macd_hist);
+    const absH = Math.abs(h);
+
+    if (absH < 20) {
+      parts.push(
+        "MACD hist próximo de zero: momentum fraco, movimentos podem estar perdendo força."
+      );
+    } else if (h > 0) {
+      parts.push(
+        "MACD hist positivo: momentum comprador predominando no momento."
+      );
+    } else if (h < 0) {
+      parts.push(
+        "MACD hist negativo: momentum vendedor predominando no momento."
+      );
+    }
+  }
+
+  // 5) Estado da posição do bot
+  if (bot.has_open_position) {
+    parts.push(
+      "Bot está com posição aberta. Acompanhe stop loss e take profit configurados."
+    );
+  } else {
+    parts.push(
+      "Bot sem posição aberta neste momento. Próxima operação dependerá dos sinais do modelo."
+    );
+  }
+
+  return parts.join(" ");
+}
+
 function ActiveBotsPanel({ bots }) {
   const activeBots = bots || [];
 
@@ -78,8 +174,11 @@ function ActiveBotsPanel({ bots }) {
         const macdHist =
           ind?.macd_hist != null ? Number(ind.macd_hist).toFixed(2) : "–";
 
+        const analysisText = buildAnalysis(bot, ind);
+
         return (
           <div key={bot.id} className="bot-card">
+            {/* Cabeçalho do card */}
             <div
               style={{
                 display: "flex",
@@ -98,9 +197,14 @@ function ActiveBotsPanel({ bots }) {
               </div>
             </div>
 
+            {/* Info básica do bot */}
             <div style={{ fontSize: "0.8rem" }}>
-              <div>Saldo virtual livre: {bot.saldo_usdt_livre.toFixed(2)} USDT</div>
-              <div>Posição aberta: {bot.has_open_position ? "Sim" : "Não"}</div>
+              <div>
+                Saldo virtual livre: {bot.saldo_usdt_livre.toFixed(2)} USDT
+              </div>
+              <div>
+                Posição aberta: {bot.has_open_position ? "Sim" : "Não"}
+              </div>
               {bot.has_open_position && (
                 <>
                   <div>Qtd moeda (virtual): {bot.qty_moeda}</div>
@@ -152,6 +256,29 @@ function ActiveBotsPanel({ bots }) {
               {!indState.loading && !indState.error && !ind && (
                 <div>Nenhum indicador disponível para este símbolo.</div>
               )}
+            </div>
+
+            {/* Bloco de análise automática */}
+            <div
+              style={{
+                marginTop: "0.35rem",
+                paddingTop: "0.3rem",
+                borderTop: "1px dashed #d1d5db",
+                fontSize: "0.75rem",
+                color: "#374151",
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 600,
+                  marginBottom: "0.18rem",
+                  fontSize: "0.75rem",
+                  opacity: 0.9,
+                }}
+              >
+                Análise automática (beta)
+              </div>
+              <div style={{ lineHeight: 1.3 }}>{analysisText}</div>
             </div>
           </div>
         );
