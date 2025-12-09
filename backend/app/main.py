@@ -7,20 +7,24 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.db.base import init_db
-from app.api.routes_bots import router as bots_router
 from app.api.routes_system import router as system_router
+from app.api.routes_bots import router as bots_router
 from app.api.routes_binance import router as binance_router
 from app.api.routes_indicators import router as indicators_router
-from app.engine.runner import bot_engine_loop
 from app.api.routes_stats import router as stats_router
+from app.api.routes_trades import router as trades_router
+from app.engine.runner import bot_engine_loop
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
 
-    app = FastAPI(title=settings.app_name)
+    app = FastAPI(
+        title="bbot",
+        version="0.1.0",
+    )
 
-    # CORS liberado por enquanto (frontend React local e depois no mesmo container)
+    # CORS liberado para desenvolvimento local
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -33,12 +37,13 @@ def create_app() -> FastAPI:
     app.include_router(system_router)
     app.include_router(bots_router)
     app.include_router(binance_router)
-    app.include_router(indicators_router, prefix="/indicators", tags=["indicators"])
-    app.include_router(stats_router, prefix="/stats", tags=["stats"])
+    app.include_router(indicators_router)
+    app.include_router(stats_router)
+    app.include_router(trades_router)
 
 
-    @app.get("/")
-    def read_root():
+    @app.get("/", tags=["health"])
+    async def root():
         return {"message": "bbot API up", "mode": settings.app_mode}
 
     @app.on_event("startup")

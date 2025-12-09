@@ -22,6 +22,7 @@ import BotList from "./components/BotList";
 import ActiveBotsPanel from "./components/ActiveBotsPanel";
 import BotsSummary from "./components/BotsSummary";
 import BinanceOrderTester from "./components/BinanceOrderTester";
+import TradesBoard from "./components/TradesBoard";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -320,6 +321,11 @@ function App() {
       {/* ROW 3: Teste de ordens Binance */}
       <section className="account-info">
         <BinanceOrderTester account={account} />
+      </section>
+
+      {/* ROW 4: Histórico de trades */}
+      <section className="account-info">
+        <TradesBoard />
       </section>
 
       {loading && (
