@@ -33,7 +33,11 @@ function BotList({
     setOpenTrades((prev) => ({ ...prev, [id]: true }));
     setTradesData((prev) => ({
       ...prev,
-      [id]: { ...(prev[id] || {}), loading: true, error: null },
+      [id]: {
+        ...(prev[id] || {}),
+        loading: true,
+        error: null,
+      },
     }));
 
     try {
@@ -62,13 +66,23 @@ function BotList({
 
   return (
     <div>
-      <div style={{ marginBottom: "0.5rem", display: "flex", gap: "0.5rem" }}>
-        <button className="btn" type="button" onClick={onStartAll}>
-          Ligar todos
-        </button>
-        <button className="btn btn-secondary" type="button" onClick={onStopAll}>
-          Desligar todos
-        </button>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: "0.5rem",
+          alignItems: "center",
+        }}
+      >
+        <strong>Lista de bots</strong>
+        <div className="form-actions">
+          <button className="btn btn-secondary" onClick={onStartAll}>
+            Ligar todos
+          </button>
+          <button className="btn btn-secondary" onClick={onStopAll}>
+            Desligar todos
+          </button>
+        </div>
       </div>
 
       <table className="bot-table">
@@ -126,8 +140,9 @@ function BotList({
 
             const isOpen = !!openTrades[bot.id];
             const data = tradesData[bot.id] || {};
+            const trades = data.trades || [];
 
-            // Ver trades sempre
+            // Botão de trades (sempre)
             actions.push({
               label: isOpen ? "Ocultar trades" : "Ver trades",
               type: "secondary",
@@ -143,10 +158,24 @@ function BotList({
 
             // P/L realizado acumulado para este bot (só SELL tem realized_pnl)
             const realizedPnl =
-              data.trades && data.trades.length
-                ? data.trades.reduce(
+              trades && trades.length
+                ? trades.reduce(
                     (sum, t) =>
-                      sum + (t.realized_pnl != null ? t.realized_pnl : 0),
+                      sum +
+                      (t.realized_pnl != null ? Number(t.realized_pnl) : 0),
+                    0
+                  )
+                : 0;
+
+            // Soma de taxas em USDT (ignorando outras moedas de taxa)
+            const totalFeesUsdt =
+              trades && trades.length
+                ? trades.reduce(
+                    (sum, t) =>
+                      sum +
+                      (t.fee_asset === "USDT" && t.fee_amount != null
+                        ? Number(t.fee_amount)
+                        : 0),
                     0
                   )
                 : 0;
@@ -165,11 +194,9 @@ function BotList({
                       {actions.map((action, idx) => (
                         <button
                           key={idx}
-                          className={
-                            "btn " +
-                            (action.type === "secondary" ? "btn-secondary" : "")
-                          }
-                          type="button"
+                          className={`btn ${
+                            action.type === "secondary" ? "btn-secondary" : ""
+                          }`}
                           onClick={action.onClick}
                         >
                           {action.label}
@@ -183,73 +210,124 @@ function BotList({
                   <tr key={`${bot.id}-trades`}>
                     <td colSpan={7}>
                       <div className="bot-trades-container">
-                        <p
+                        <div
                           style={{
-                            fontSize: "0.78rem",
-                            marginBottom: "0.2rem",
+                            fontSize: "0.8rem",
+                            fontWeight: 500,
+                            marginBottom: "0.15rem",
                           }}
                         >
-                          Trades de <strong>{bot.name}</strong> ({bot.symbol})
-                        </p>
+                          Trades de {bot.name} ({bot.symbol})
+                        </div>
 
-                        <p
+                        <div
                           style={{
-                            fontSize: "0.78rem",
-                            marginBottom: "0.3rem",
+                            marginBottom: "0.25rem",
+                            fontSize: "0.75rem",
+                            color: "#374151",
+                            display: "flex",
+                            gap: "0.75rem",
+                            flexWrap: "wrap",
                           }}
                         >
-                          P/L realizado:{" "}
-                          <strong>{realizedPnl.toFixed(4)} USDT</strong>
-                        </p>
+                          <span>
+                            P/L realizado:{" "}
+                            <strong>
+                              {realizedPnl.toFixed(6)} USDT
+                            </strong>
+                          </span>
+                          <span>
+                            Taxas (USDT):{" "}
+                            <strong>
+                              {totalFeesUsdt.toFixed(6)} USDT
+                            </strong>
+                          </span>
+                        </div>
 
-                        {data.loading && <p>Carregando trades...</p>}
+                        {data.loading && (
+                          <p style={{ fontSize: "0.8rem" }}>
+                            Carregando trades...
+                          </p>
+                        )}
+
                         {data.error && (
-                          <p className="error">
+                          <p
+                            className="error"
+                            style={{ fontSize: "0.8rem", margin: 0 }}
+                          >
                             Erro ao carregar trades: {data.error}
                           </p>
                         )}
+
                         {!data.loading &&
                           !data.error &&
-                          (!data.trades || data.trades.length === 0) && (
-                            <p style={{ fontSize: "0.8rem" }}>
+                          (!trades || trades.length === 0) && (
+                            <p style={{ fontSize: "0.8rem", margin: 0 }}>
                               Nenhum trade registrado para este bot.
                             </p>
                           )}
 
-                        {!data.loading && !data.error && data.trades && (
-                          <div className="bot-trades-table-wrapper">
-                            <table className="bot-table">
-                              <thead>
-                                <tr>
-                                  <th>Data</th>
-                                  <th>Lado</th>
-                                  <th>Preço</th>
-                                  <th>Qtd</th>
-                                  <th>Valor (USDT)</th>
-                                  <th>Simulado</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {data.trades.map((t) => (
-                                  <tr key={t.id}>
-                                    <td>
-                                      {t.created_at
-                                        ? new Date(
-                                            t.created_at
-                                          ).toLocaleString()
-                                        : "-"}
-                                    </td>
-                                    <td>{t.side}</td>
-                                    <td>{t.price.toFixed(4)}</td>
-                                    <td>{t.qty}</td>
-                                    <td>{t.quote_qty}</td>
-                                    <td>{t.is_simulated ? "Sim" : "Não"}</td>
+                        {!data.loading &&
+                          !data.error &&
+                          trades &&
+                          trades.length > 0 && (
+                            <div className="bot-trades-table-wrapper">
+                              <table
+                                className="bot-table"
+                                style={{ marginTop: "0.25rem" }}
+                              >
+                                <thead>
+                                  <tr>
+                                    <th>Data</th>
+                                    <th>Lado</th>
+                                    <th>Preço</th>
+                                    <th>Qtd</th>
+                                    <th>Valor (USDT)</th>
+                                    <th>Simulado</th>
+                                    <th>Taxa</th>
+                                    <th>P/L realizado</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
+                                </thead>
+                                <tbody>
+                                  {trades.map((t) => (
+                                    <tr key={t.id}>
+                                      <td>
+                                        {t.created_at
+                                          ? new Date(
+                                              t.created_at
+                                            ).toLocaleString()
+                                          : "-"}
+                                      </td>
+                                      <td>{t.side}</td>
+                                      <td>{t.price.toFixed(4)}</td>
+                                      <td>{t.qty}</td>
+                                      <td>{t.quote_qty}</td>
+                                      <td>{t.is_simulated ? "Sim" : "Não"}</td>
+                                      <td>
+                                        {t.fee_amount != null ? (
+                                          <>
+                                            {Number(
+                                              t.fee_amount
+                                            ).toFixed(6)}{" "}
+                                            {t.fee_asset || ""}
+                                          </>
+                                        ) : (
+                                          "-"
+                                        )}
+                                      </td>
+                                      <td>
+                                        {t.realized_pnl != null
+                                          ? Number(
+                                              t.realized_pnl
+                                            ).toFixed(6)
+                                          : "-"}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
                       </div>
                     </td>
                   </tr>
