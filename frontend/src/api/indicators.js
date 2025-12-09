@@ -1,6 +1,9 @@
 import { apiGet } from "./client";
 
 export function getLatestIndicator(symbol) {
-  // backend já expõe /indicators/latest/{symbol}
-  return apiGet(`/indicators/latest/${symbol}`);
+  if (!symbol) {
+    throw new Error("Símbolo é obrigatório para buscar indicadores.");
+  }
+
+  return apiGet(`/indicators/latest/${symbol.toUpperCase()}`);
 }

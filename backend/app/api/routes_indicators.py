@@ -10,8 +10,8 @@ from app.db.session import engine
 from app.indicators.service import sync_indicators_for_symbol
 from app.models.indicator import Indicator
 
-
-router = APIRouter()
+# IMPORTANTE: prefix volta a ser /indicators, pois o frontend chama /indicators/latest/{symbol}
+router = APIRouter(prefix="/indicators", tags=["indicators"])
 
 
 @router.get("/ping")
@@ -23,11 +23,11 @@ def ping_indicators():
 def sync_symbol_indicators(symbol: str):
     """
     Sincroniza indicadores para um símbolo (ex: BTCUSDT).
-
     Em caso de erro, devolve o texto da exceção em `detail`
     para facilitar o debug via curl.
     """
     symbol = symbol.upper()
+
     try:
         inserted = sync_indicators_for_symbol(symbol, interval="5m", limit=200)
         return {"symbol": symbol, "inserted": inserted}
@@ -35,6 +35,7 @@ def sync_symbol_indicators(symbol: str):
         # Loga stack trace no console do container
         print("[INDICATORS] Erro ao sincronizar indicadores:", repr(e), file=sys.stderr)
         traceback.print_exc()
+
         # Devolve mensagem de erro para o cliente
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -42,12 +43,19 @@ def sync_symbol_indicators(symbol: str):
 @router.get("/latest/{symbol}")
 def get_latest_indicator(symbol: str):
     symbol = symbol.upper()
+
     with Session(engine) as session:
-        ind = session.exec(
-            select(Indicator)
-            .where(Indicator.symbol == symbol, Indicator.interval == "5m")
-            .order_by(Indicator.close_time.desc())
-        ).first()
+        ind = (
+            session.exec(
+                select(Indicator)
+                .where(
+                    Indicator.symbol == symbol,
+                    Indicator.interval == "5m",
+                )
+                .order_by(Indicator.close_time.desc())
+            )
+            .first()
+        )
 
         if not ind:
             raise HTTPException(
