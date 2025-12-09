@@ -12,6 +12,7 @@ from app.api.routes_system import router as system_router
 from app.api.routes_binance import router as binance_router
 from app.api.routes_indicators import router as indicators_router
 from app.engine.runner import bot_engine_loop
+from app.api.routes_stats import router as stats_router
 
 
 def create_app() -> FastAPI:
@@ -33,6 +34,8 @@ def create_app() -> FastAPI:
     app.include_router(bots_router)
     app.include_router(binance_router)
     app.include_router(indicators_router, prefix="/indicators", tags=["indicators"])
+    app.include_router(stats_router, prefix="/stats", tags=["stats"])
+
 
     @app.get("/")
     def read_root():

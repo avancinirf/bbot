@@ -60,7 +60,8 @@ function ActiveBotsPanel({ bots }) {
         const indState = indicatorsBySymbol[bot.symbol] || {};
         const ind = indState.data || null;
 
-        let signalText = "-";
+        // Texto e cor do "Mercado"
+        let signalText = "Sem sinal";
         let signalColor = "#374151";
 
         if (ind?.market_signal_compra) {
@@ -93,16 +94,13 @@ function ActiveBotsPanel({ bots }) {
                 </span>
               </div>
               <div style={{ fontSize: "0.75rem" }}>
-                Status:{" "}
-                <strong>{bot.status}</strong>
+                Status: <strong>{bot.status}</strong>
               </div>
             </div>
 
             <div style={{ fontSize: "0.8rem" }}>
               <div>Saldo virtual livre: {bot.saldo_usdt_livre.toFixed(2)} USDT</div>
-              <div>
-                Posição aberta: {bot.has_open_position ? "Sim" : "Não"}
-              </div>
+              <div>Posição aberta: {bot.has_open_position ? "Sim" : "Não"}</div>
               {bot.has_open_position && (
                 <>
                   <div>Qtd moeda (virtual): {bot.qty_moeda}</div>
@@ -134,9 +132,7 @@ function ActiveBotsPanel({ bots }) {
               {indState.loading && <div>Carregando indicadores...</div>}
 
               {indState.error && (
-                <div className="error">
-                  Erro: {indState.error}
-                </div>
+                <div className="error">Erro: {indState.error}</div>
               )}
 
               {!indState.loading && !indState.error && ind && (

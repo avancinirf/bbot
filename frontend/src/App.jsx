@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { getSystemHealth, getSystemState, toggleSystemState } from "./api/system";
+import {
+  getSystemHealth,
+  getSystemState,
+  toggleSystemState,
+} from "./api/system";
 import {
   listBots,
   createBot,
@@ -16,6 +20,7 @@ import { getAccountSummary } from "./api/binance";
 import BotForm from "./components/BotForm";
 import BotList from "./components/BotList";
 import ActiveBotsPanel from "./components/ActiveBotsPanel";
+import BotsSummary from "./components/BotsSummary";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -27,11 +32,9 @@ function App() {
   const [systemRunning, setSystemRunning] = useState(false);
   const [bots, setBots] = useState([]);
   const [account, setAccount] = useState(null);
-
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
-
   const [showBalances, setShowBalances] = useState(false);
 
   const fetchBots = async () => {
@@ -42,19 +45,24 @@ function App() {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
+      setError(null);
+
       const [health, state, botsData, accountSummary] = await Promise.all([
         getSystemHealth(),
         getSystemState(),
         listBots(),
         getAccountSummary(),
       ]);
+
       setSystem(health);
       setSystemRunning(state.system_running);
       setBots(botsData);
       setAccount(accountSummary);
     } catch (err) {
       console.error(err);
-      setError("Erro ao carregar dados iniciais. Verifique se a API está no ar.");
+      setError(
+        "Erro ao carregar dados iniciais. Verifique se a API está no ar."
+      );
     } finally {
       setLoading(false);
     }
@@ -76,7 +84,6 @@ function App() {
 
   const handleCreateBot = async (botData) => {
     if (!window.confirm("Confirmar criação do bot?")) return;
-
     try {
       setCreating(true);
       setError(null);
@@ -92,9 +99,10 @@ function App() {
     }
   };
 
-  // ---- AÇÕES EM UM ÚNICO BOT ----
   const updateBotInState = (updatedBot) => {
-    setBots((prev) => prev.map((b) => (b.id === updatedBot.id ? updatedBot : b)));
+    setBots((prev) =>
+      prev.map((b) => (b.id === updatedBot.id ? updatedBot : b))
+    );
   };
 
   const removeBotFromState = (id) => {
@@ -150,9 +158,9 @@ function App() {
       !window.confirm(
         "Remover este bot e TODAS as informações relacionadas? Esta ação não pode ser desfeita."
       )
-    )
+    ) {
       return;
-
+    }
     try {
       await deleteBot(id);
       removeBotFromState(id);
@@ -167,9 +175,9 @@ function App() {
       !window.confirm(
         "Confirmar FECHAR a posição deste bot ao preço de mercado atual?"
       )
-    )
+    ) {
       return;
-
+    }
     try {
       const updated = await closeBotPosition(id);
       updateBotInState(updated);
@@ -179,8 +187,6 @@ function App() {
     }
   };
 
-
-  // ---- AÇÕES EM MASSA ----
   const handleStartAllBots = async () => {
     if (!window.confirm("Confirmar LIGAR TODOS os bots desbloqueados?")) return;
     try {
@@ -208,20 +214,24 @@ function App() {
 
   return (
     <div className="app-root">
-      {/* Barra de menu / topo */}
+      {/* Cabeçalho */}
       <header className="app-header">
         <div className="app-title">
           <h1>{system.app_name || "bbot"}</h1>
-          <span className="app-mode">
+          <div className="app-mode">
             Modo:{" "}
-            <strong>
-              {system.app_mode === "simulation" ? "Simulação" : system.app_mode}
-            </strong>
-          </span>
+            {system.app_mode === "simulation"
+              ? "Simulação"
+              : system.app_mode}
+          </div>
         </div>
         <div className="app-header-actions">
-          <span className={`system-status ${systemRunning ? "on" : "off"}`}>
-            Sistema: {systemRunning ? "Ligado" : "Desligado"}
+          <span
+            className={
+              "system-status " + (systemRunning ? "on" : "off")
+            }
+          >
+            {systemRunning ? "Sistema ligado" : "Sistema desligado"}
           </span>
           <button className="btn" onClick={handleToggleSystem}>
             {systemRunning ? "Desligar sistema" : "Ligar sistema"}
@@ -229,7 +239,7 @@ function App() {
         </div>
       </header>
 
-      {/* Bloco superior: informações da conta Binance */}
+      {/* ROW 1: Conta Binance */}
       <section className="account-info">
         <h2>Conta Binance</h2>
 
@@ -238,80 +248,88 @@ function App() {
         {account && (
           <>
             <p>
-              <strong>Status de conexão:</strong>{" "}
-              {account.connected
-                ? "Conectado"
-                : `Não conectado (${account.reason || "motivo desconhecido"})`}
+              Status de conexão:{" "}
+              <strong>
+                {account.connected
+                  ? "Conectado"
+                  : `Não conectado (${account.reason || "motivo desconhecido"})`}
+              </strong>
             </p>
             <p>
-              <strong>Modo backend:</strong> {account.mode}
+              Modo backend: <strong>{account.mode}</strong>
             </p>
             <p>
-              <strong>Pode operar (canTrade):</strong>{" "}
-              {account.canTrade ? "Sim" : "Não"}
+              Pode operar (canTrade):{" "}
+              <strong>{account.canTrade ? "Sim" : "Não"}</strong>
             </p>
 
-            <p>
-              <strong>Ativos com saldo &gt; 0:</strong> {balancesCount}
-            </p>
+            <div className="account-balances-header">
+              <span>
+                Ativos com saldo &gt; 0: <strong>{balancesCount}</strong>
+              </span>
+              {balancesCount > 0 && (
+                <button
+                  className="btn btn-secondary btn-xs"
+                  onClick={() => setShowBalances((v) => !v)}
+                >
+                  {showBalances ? "Ocultar" : "Mostrar"}
+                </button>
+              )}
+            </div>
 
-            {balancesCount > 0 && (
-              <>
-                <div className="account-balances-header">
-                  <span>Detalhes dos saldos</span>
-                  <button
-                    className="btn btn-secondary btn-xs"
-                    type="button"
-                    onClick={() => setShowBalances((v) => !v)}
-                  >
-                    {showBalances ? "Ocultar" : "Mostrar"}
-                  </button>
-                </div>
-
-                {showBalances && (
-                  <div className="account-balances">
-                    <table className="bot-table">
-                      <thead>
-                        <tr>
-                          <th>Ativo</th>
-                          <th>Free</th>
-                          <th>Locked</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {account.balances.map((b) => (
-                          <tr key={b.asset}>
-                            <td>{b.asset}</td>
-                            <td>{Number(b.free).toFixed(6)}</td>
-                            <td>{Number(b.locked).toFixed(6)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </>
+            {showBalances && balancesCount > 0 && (
+              <div className="account-balances">
+                <table className="bot-table">
+                  <thead>
+                    <tr>
+                      <th>Ativo</th>
+                      <th>Free</th>
+                      <th>Locked</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {account.balances.map((b) => (
+                      <tr key={b.asset}>
+                        <td>{b.asset}</td>
+                        <td>{Number(b.free).toFixed(6)}</td>
+                        <td>{Number(b.locked).toFixed(6)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
+
+            <p style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>
+              API base: <code>{apiBase}</code>
+            </p>
           </>
         )}
-
-        <p style={{ marginTop: "0.25rem", fontSize: "0.8rem", opacity: 0.7 }}>
-          API base: <code>{apiBase}</code>
-        </p>
       </section>
 
-      {loading && <p>Carregando dados...</p>}
-      {error && <p className="error">{error}</p>}
+      {/* ROW 2: Resumo dos bots (virtual) – linha inteira, como o bloco de conta */}
+      <section className="account-info">
+        <BotsSummary />
+      </section>
 
-      {/* Conteúdo principal */}
+      {loading && (
+        <p style={{ padding: "0.5rem 1.25rem" }}>Carregando dados...</p>
+      )}
+      {error && (
+        <p className="error" style={{ padding: "0 1.25rem" }}>
+          {error}
+        </p>
+      )}
+
+      {/* Layout principal: esquerda (form + lista), direita (cards ativos) */}
       <main className="main-layout">
-        {/* Coluna esquerda: 40% */}
-        <section className="left-panel">
-          <div className="panel">
+        <div className="left-panel">
+          <section className="panel">
             <h2>Criar novo bot</h2>
-            <BotForm onCreate={handleCreateBot} creating={creating} />
-          </div>
-          <div className="panel">
+            <BotForm onCreate={handleCreateBot} loading={creating} />
+          </section>
+
+          <section className="panel">
             <h2>Lista de bots</h2>
             <BotList
               bots={bots}
@@ -324,16 +342,15 @@ function App() {
               onStopAll={handleStopAllBots}
               onClosePosition={handleClosePosition}
             />
-          </div>
-        </section>
+          </section>
+        </div>
 
-        {/* Coluna direita: 60% */}
-        <section className="right-panel">
-          <div className="panel">
+        <div className="right-panel">
+          <section className="panel">
             <h2>Bots ativos</h2>
             <ActiveBotsPanel bots={activeBots} />
-          </div>
-        </section>
+          </section>
+        </div>
       </main>
     </div>
   );
