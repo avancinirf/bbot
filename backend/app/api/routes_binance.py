@@ -24,24 +24,24 @@ class OrderTestRequest(BaseModel):
 
     # OU quantity (moeda base) OU quoteOrderQty (USDT)
     quantity: Optional[float] = Field(
-        None,
-        gt=0,
-        description="Quantidade da moeda base (ex: BTC)",
+      None,
+      gt=0,
+      description="Quantidade da moeda base (ex: BTC)",
     )
     quoteOrderQty: Optional[float] = Field(
-        None,
-        gt=0,
-        description="Quantidade em USDT (ou moeda de cotação) para ordens MARKET",
+      None,
+      gt=0,
+      description="Quantidade em USDT (ou moeda de cotação) para ordens MARKET",
     )
 
     price: Optional[float] = Field(
-        None,
-        gt=0,
-        description="Preço para ordens LIMIT",
+      None,
+      gt=0,
+      description="Preço para ordens LIMIT",
     )
     timeInForce: Optional[str] = Field(
-        default=None,
-        description="GTC, IOC, FOK. Para LIMIT, default = GTC.",
+      default=None,
+      description="GTC, IOC, FOK. Para LIMIT, default = GTC.",
     )
 
     class Config:
@@ -72,6 +72,7 @@ def account_summary() -> dict:
     if not settings.binance_api_key or not settings.binance_api_secret:
         return {
             "mode": settings.app_mode,
+            "testnet": settings.binance_testnet,
             "connected": False,
             "reason": "Chaves da Binance não configuradas",
             "balances": [],
@@ -95,6 +96,7 @@ def account_summary() -> dict:
 
     return {
         "mode": settings.app_mode,
+        "testnet": settings.binance_testnet,
         "connected": True,
         "balances": summary["balances"],
         "canTrade": summary["canTrade"],
@@ -206,9 +208,6 @@ def place_order_route(payload: OrderTestRequest) -> dict:
     order_type = payload.type.upper()
 
     # Proteção extra para mainnet:
-    # - se NÃO estiver em testnet
-    # - e app_mode NÃO for "real"
-    #   => bloqueia para evitar ordem acidental em conta real.
     if not settings.binance_testnet and settings.app_mode != "real":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

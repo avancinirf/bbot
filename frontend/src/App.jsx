@@ -21,6 +21,7 @@ import BotForm from "./components/BotForm";
 import BotList from "./components/BotList";
 import ActiveBotsPanel from "./components/ActiveBotsPanel";
 import BotsSummary from "./components/BotsSummary";
+import BinanceOrderTester from "./components/BinanceOrderTester";
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -259,6 +260,10 @@ function App() {
               Modo backend: <strong>{account.mode}</strong>
             </p>
             <p>
+              Ambiente Binance:{" "}
+              <strong>{account.testnet ? "Testnet" : "Mainnet"}</strong>
+            </p>
+            <p>
               Pode operar (canTrade):{" "}
               <strong>{account.canTrade ? "Sim" : "Não"}</strong>
             </p>
@@ -307,9 +312,14 @@ function App() {
         )}
       </section>
 
-      {/* ROW 2: Resumo dos bots (virtual) – linha inteira, como o bloco de conta */}
+      {/* ROW 2: Resumo dos bots (virtual) */}
       <section className="account-info">
         <BotsSummary />
+      </section>
+
+      {/* ROW 3: Teste de ordens Binance */}
+      <section className="account-info">
+        <BinanceOrderTester account={account} />
       </section>
 
       {loading && (
