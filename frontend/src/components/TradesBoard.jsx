@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getRecentTrades } from "../api/trades";
 
+const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
 function TradesBoard() {
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,6 +42,18 @@ function TradesBoard() {
     loadTrades();
   };
 
+  const handleDownloadCsv = () => {
+    const params = new URLSearchParams();
+    if (limit) params.set("limit", String(limit || 50));
+    if (botId != null && botId !== "") params.set("bot_id", String(botId));
+    if (symbol) params.set("symbol", symbol.toUpperCase().trim());
+
+    const qs = params.toString();
+    const url = `${apiBase}/trades/export${qs ? `?${qs}` : ""}`;
+
+    window.open(url, "_blank");
+  };
+
   return (
     <div>
       <div
@@ -47,17 +61,27 @@ function TradesBoard() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: "0.5rem",
           marginBottom: "0.4rem",
         }}
       >
         <h2 style={{ margin: 0 }}>Histórico de trades</h2>
-        <button
-          className="btn btn-secondary btn-xs"
-          onClick={loadTrades}
-          disabled={loading}
-        >
-          {loading ? "Atualizando..." : "Atualizar"}
-        </button>
+        <div style={{ display: "flex", gap: "0.4rem" }}>
+          <button
+            className="btn btn-secondary btn-xs"
+            onClick={loadTrades}
+            disabled={loading}
+          >
+            {loading ? "Atualizando..." : "Atualizar"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-xs"
+            onClick={handleDownloadCsv}
+          >
+            Baixar CSV
+          </button>
+        </div>
       </div>
 
       <p style={{ fontSize: "0.75rem", color: "#6b7280", marginBottom: "0.4rem" }}>

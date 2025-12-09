@@ -1,284 +1,274 @@
 import { useEffect, useState } from "react";
-import { getLatestIndicator } from "../api/indicators";
-
-function buildAnalysis(bot, ind) {
-  if (!ind) {
-    return "Sem indicadores suficientes para análise neste símbolo.";
-  }
-
-  const parts = [];
-
-  // 1) Sinal de mercado
-  if (ind.market_signal_compra) {
-    parts.push(
-      "Sinal de COMPRA ativo: modelo indica viés altista no curto prazo."
-    );
-  } else if (ind.market_signal_venda) {
-    parts.push(
-      "Sinal de VENDA ativo: modelo indica viés baixista no curto prazo."
-    );
-  } else {
-    parts.push("Sem sinal claro de compra ou venda neste momento.");
-  }
-
-  // 2) Tendência geral
-  const trend = (ind.trend_label || "").toLowerCase();
-  if (trend === "bullish") {
-    parts.push(
-      "Tendência: bullish (alta). Preço acima das médias, viés positivo."
-    );
-  } else if (trend === "bearish") {
-    parts.push(
-      "Tendência: bearish (baixa). Preço abaixo das médias, viés negativo."
-    );
-  } else if (trend === "neutral") {
-    parts.push(
-      "Tendência: neutra. Mercado mais lateral ou sem direção definida."
-    );
-  } else {
-    parts.push("Tendência: não determinada pelos indicadores atuais.");
-  }
-
-  // 3) RSI
-  if (ind.rsi14 != null) {
-    const rsi = Number(ind.rsi14);
-    if (rsi >= 70) {
-      parts.push(
-        `RSI em zona de sobrecompra (${rsi.toFixed(
-          2
-        )}). Pode haver risco de correção.`
-      );
-    } else if (rsi <= 30) {
-      parts.push(
-        `RSI em zona de sobrevenda (${rsi.toFixed(
-          2
-        )}). Mercado pode estar esticado para baixo.`
-      );
-    } else {
-      parts.push(
-        `RSI em zona neutra (${rsi.toFixed(
-          2
-        )}). Sem excesso claro de compra ou venda.`
-      );
-    }
-  }
-
-  // 4) MACD hist (força/momentum)
-  if (ind.macd_hist != null) {
-    const h = Number(ind.macd_hist);
-    const absH = Math.abs(h);
-
-    if (absH < 20) {
-      parts.push(
-        "MACD hist próximo de zero: momentum fraco, movimentos podem estar perdendo força."
-      );
-    } else if (h > 0) {
-      parts.push(
-        "MACD hist positivo: momentum comprador predominando no momento."
-      );
-    } else if (h < 0) {
-      parts.push(
-        "MACD hist negativo: momentum vendedor predominando no momento."
-      );
-    }
-  }
-
-  // 5) Estado da posição do bot
-  if (bot.has_open_position) {
-    parts.push(
-      "Bot está com posição aberta. Acompanhe stop loss e take profit configurados."
-    );
-  } else {
-    parts.push(
-      "Bot sem posição aberta neste momento. Próxima operação dependerá dos sinais do modelo."
-    );
-  }
-
-  return parts.join(" ");
-}
+import { getStatsByBot } from "../api/stats";
+import { getBotTrades } from "../api/bots";
 
 function ActiveBotsPanel({ bots }) {
-  const activeBots = bots || [];
+  const [statsByBot, setStatsByBot] = useState({});
+  const [loadingStats, setLoadingStats] = useState(false);
+  const [errorStats, setErrorStats] = useState(null);
 
-  const [indicatorsBySymbol, setIndicatorsBySymbol] = useState({}); // { [symbol]: { loading, error, data } }
+  const [tradesByBot, setTradesByBot] = useState({});
+  const [openTradesBotId, setOpenTradesBotId] = useState(null);
+  const [loadingTradesBotId, setLoadingTradesBotId] = useState(null);
 
-  // Carrega o último indicador (5m) para cada símbolo dos bots ativos
   useEffect(() => {
-    if (!activeBots.length) return;
+    const loadStats = async () => {
+      try {
+        setLoadingStats(true);
+        setErrorStats(null);
+        const data = await getStatsByBot();
+        const map = {};
+        data.forEach((row) => {
+          map[row.bot_id] = row;
+        });
+        setStatsByBot(map);
+      } catch (err) {
+        console.error(err);
+        setErrorStats("Erro ao carregar estatísticas por bot.");
+      } finally {
+        setLoadingStats(false);
+      }
+    };
 
-    const symbols = Array.from(new Set(activeBots.map((b) => b.symbol)));
+    loadStats();
+  }, []);
 
-    symbols.forEach((symbol) => {
-      setIndicatorsBySymbol((prev) => {
-        const current = prev[symbol];
-        // Se já temos loading/data/error, não dispara outra requisição
-        if (current && (current.loading || current.data || current.error)) {
-          return prev;
-        }
+  const handleToggleTrades = async (botId) => {
+    if (openTradesBotId === botId) {
+      setOpenTradesBotId(null);
+      return;
+    }
 
-        const next = {
-          ...prev,
-          [symbol]: { loading: true, error: null, data: current?.data || null },
-        };
+    // se já temos trades em memória, só abre
+    if (tradesByBot[botId]) {
+      setOpenTradesBotId(botId);
+      return;
+    }
 
-        // Dispara fetch assíncrono
-        getLatestIndicator(symbol)
-          .then((data) => {
-            setIndicatorsBySymbol((prev2) => ({
-              ...prev2,
-              [symbol]: { loading: false, error: null, data },
-            }));
-          })
-          .catch((err) => {
-            setIndicatorsBySymbol((prev2) => ({
-              ...prev2,
-              [symbol]: {
-                loading: false,
-                error:
-                  err?.message || "Erro ao carregar indicadores para o símbolo.",
-                data: null,
-              },
-            }));
-          });
+    try {
+      setLoadingTradesBotId(botId);
+      const trades = await getBotTrades(botId);
+      setTradesByBot((prev) => ({
+        ...prev,
+        [botId]: trades,
+      }));
+      setOpenTradesBotId(botId);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao carregar trades do bot.");
+    } finally {
+      setLoadingTradesBotId(null);
+    }
+  };
 
-        return next;
-      });
-    });
-  }, [activeBots]);
-
-  if (!activeBots.length) {
-    return <p>Nenhum bot ativo no momento.</p>;
+  if (!bots || bots.length === 0) {
+    return <p>Não há bots ativos no momento.</p>;
   }
 
   return (
-    <div className="bot-cards">
-      {activeBots.map((bot) => {
-        const indState = indicatorsBySymbol[bot.symbol] || {};
-        const ind = indState.data || null;
-
-        // Texto e cor do "Mercado"
-        let signalText = "Sem sinal";
-        let signalColor = "#374151";
-
-        if (ind?.market_signal_compra) {
-          signalText = "Sinal de COMPRA";
-          signalColor = "#16a34a"; // verde
-        } else if (ind?.market_signal_venda) {
-          signalText = "Sinal de VENDA";
-          signalColor = "#b91c1c"; // vermelho
-        }
-
-        const trendLabel = ind?.trend_label || "desconhecido";
-        const rsi =
-          ind?.rsi14 != null ? Number(ind.rsi14).toFixed(2) : "–";
-        const macdHist =
-          ind?.macd_hist != null ? Number(ind.macd_hist).toFixed(2) : "–";
-
-        const analysisText = buildAnalysis(bot, ind);
+    <div className="active-bots-grid">
+      {bots.map((bot) => {
+        const stats = statsByBot[bot.id];
+        const botTrades = tradesByBot[bot.id] || [];
 
         return (
           <div key={bot.id} className="bot-card">
-            {/* Cabeçalho do card */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "0.25rem",
-              }}
-            >
+            <div className="bot-card-header">
               <div>
-                <strong>{bot.name}</strong>{" "}
-                <span style={{ fontSize: "0.75rem", color: "#6b7280" }}>
-                  ({bot.symbol})
-                </span>
+                <h3 style={{ margin: 0 }}>{bot.name}</h3>
+                <div className="bot-subtitle">
+                  ID: {bot.id} — Símbolo: {bot.symbol}
+                </div>
               </div>
-              <div style={{ fontSize: "0.75rem" }}>
-                Status: <strong>{bot.status}</strong>
+              <div className="bot-status-pill">
+                {bot.status === "online" ? "Online" : "Offline"}
+                {bot.blocked && " (bloqueado)"}
               </div>
             </div>
 
-            {/* Info básica do bot */}
-            <div style={{ fontSize: "0.8rem" }}>
-              <div>
-                Saldo virtual livre: {bot.saldo_usdt_livre.toFixed(2)} USDT
+            <div className="bot-card-body">
+              <div className="bot-row">
+                <span>Saldo virtual total (limite):</span>
+                <strong>{Number(bot.saldo_usdt_limit).toFixed(2)} USDT</strong>
               </div>
-              <div>
-                Posição aberta: {bot.has_open_position ? "Sim" : "Não"}
+              <div className="bot-row">
+                <span>Saldo virtual livre:</span>
+                <strong>{Number(bot.saldo_usdt_livre).toFixed(2)} USDT</strong>
               </div>
-              {bot.has_open_position && (
-                <>
-                  <div>Qtd moeda (virtual): {bot.qty_moeda}</div>
-                  <div>
-                    Última compra:{" "}
-                    {bot.last_buy_price != null ? bot.last_buy_price : "-"}
-                  </div>
-                  <div>
-                    Última venda:{" "}
-                    {bot.last_sell_price != null ? bot.last_sell_price : "-"}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Bloco de indicadores */}
-            <div
-              style={{
-                marginTop: "0.4rem",
-                paddingTop: "0.35rem",
-                borderTop: "1px solid #e5e7eb",
-                fontSize: "0.75rem",
-              }}
-            >
-              <div style={{ fontWeight: 600, marginBottom: "0.2rem" }}>
-                Indicadores (5m)
+              <div className="bot-row">
+                <span>Posição aberta?</span>
+                <strong>{bot.has_open_position ? "Sim" : "Não"}</strong>
+              </div>
+              <div className="bot-row">
+                <span>Qtd moeda:</span>
+                <strong>{Number(bot.qty_moeda || 0).toFixed(8)}</strong>
+              </div>
+              <div className="bot-row">
+                <span>Último preço de compra:</span>
+                <strong>
+                  {bot.last_buy_price != null
+                    ? Number(bot.last_buy_price).toFixed(2)
+                    : "-"}
+                </strong>
+              </div>
+              <div className="bot-row">
+                <span>Último preço de venda:</span>
+                <strong>
+                  {bot.last_sell_price != null
+                    ? Number(bot.last_sell_price).toFixed(2)
+                    : "-"}
+                </strong>
+              </div>
+              <div className="bot-row">
+                <span>Valor inicial do ciclo:</span>
+                <strong>
+                  {bot.valor_inicial != null
+                    ? Number(bot.valor_inicial).toFixed(2)
+                    : "-"}
+                </strong>
               </div>
 
-              {indState.loading && <div>Carregando indicadores...</div>}
+              {/* Estatísticas agregadas por bot (stats/by_bot) */}
+              <div className="bot-section-divider" />
 
-              {indState.error && (
-                <div className="error">Erro: {indState.error}</div>
+              <div className="bot-row">
+                <span>Trades (total / buy / sell):</span>
+                <strong>
+                  {stats
+                    ? `${stats.num_trades} / ${stats.num_buys} / ${stats.num_sells}`
+                    : loadingStats
+                    ? "Carregando..."
+                    : "-"}
+                </strong>
+              </div>
+              <div className="bot-row">
+                <span>P/L realizado (USDT):</span>
+                <strong>
+                  {stats
+                    ? Number(stats.realized_pnl || 0).toFixed(6)
+                    : loadingStats
+                    ? "Carregando..."
+                    : "-"}
+                </strong>
+              </div>
+              <div className="bot-row">
+                <span>Taxas pagas (USDT):</span>
+                <strong>
+                  {stats
+                    ? Number(stats.total_fees_usdt || 0).toFixed(6)
+                    : loadingStats
+                    ? "Carregando..."
+                    : "-"}
+                </strong>
+              </div>
+              <div className="bot-row">
+                <span>Último trade:</span>
+                <strong>
+                  {stats && stats.last_trade_at
+                    ? new Date(stats.last_trade_at).toLocaleString()
+                    : "-"}
+                </strong>
+              </div>
+
+              {errorStats && (
+                <p className="error" style={{ fontSize: "0.7rem" }}>
+                  {errorStats}
+                </p>
               )}
 
-              {!indState.loading && !indState.error && ind && (
-                <>
-                  <div>Tendência: {trendLabel}</div>
-                  <div>RSI 14: {rsi}</div>
-                  <div>MACD hist: {macdHist}</div>
-                  <div style={{ marginTop: "0.15rem" }}>
-                    Mercado:{" "}
-                    <span style={{ color: signalColor, fontWeight: 600 }}>
-                      {signalText}
-                    </span>
-                  </div>
-                </>
-              )}
-
-              {!indState.loading && !indState.error && !ind && (
-                <div>Nenhum indicador disponível para este símbolo.</div>
-              )}
-            </div>
-
-            {/* Bloco de análise automática */}
-            <div
-              style={{
-                marginTop: "0.35rem",
-                paddingTop: "0.3rem",
-                borderTop: "1px dashed #d1d5db",
-                fontSize: "0.75rem",
-                color: "#374151",
-              }}
-            >
+              {/* Botão para ver trades desse bot */}
               <div
                 style={{
-                  fontWeight: 600,
-                  marginBottom: "0.18rem",
-                  fontSize: "0.75rem",
-                  opacity: 0.9,
+                  marginTop: "0.4rem",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "0.4rem",
+                  flexWrap: "wrap",
                 }}
               >
-                Análise automática (beta)
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-xs"
+                  onClick={() => handleToggleTrades(bot.id)}
+                  disabled={loadingTradesBotId === bot.id}
+                >
+                  {openTradesBotId === bot.id
+                    ? "Ocultar trades"
+                    : loadingTradesBotId === bot.id
+                    ? "Carregando..."
+                    : "Ver trades"}
+                </button>
               </div>
-              <div style={{ lineHeight: 1.3 }}>{analysisText}</div>
+
+              {/* Lista de trades desse bot, com scroll interno */}
+              {openTradesBotId === bot.id && (
+                <div
+                  style={{
+                    marginTop: "0.4rem",
+                    maxHeight: "160px",
+                    overflow: "auto",
+                    borderRadius: "0.3rem",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <table className="bot-table">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Lado</th>
+                        <th>Preço</th>
+                        <th>Qtd</th>
+                        <th>Quote</th>
+                        <th>Taxa</th>
+                        <th>P/L</th>
+                        <th>Data</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {botTrades.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={8}
+                            style={{
+                              textAlign: "center",
+                              fontSize: "0.75rem",
+                            }}
+                          >
+                            Nenhum trade encontrado para este bot.
+                          </td>
+                        </tr>
+                      )}
+
+                      {botTrades.map((t) => (
+                        <tr key={t.id}>
+                          <td>{t.id}</td>
+                          <td>{t.side}</td>
+                          <td>{Number(t.price).toFixed(2)}</td>
+                          <td>{Number(t.qty).toFixed(8)}</td>
+                          <td>{Number(t.quote_qty).toFixed(6)}</td>
+                          <td>
+                            {t.fee_amount != null
+                              ? `${Number(t.fee_amount).toFixed(6)} ${
+                                  t.fee_asset || ""
+                                }`
+                              : "-"}
+                          </td>
+                          <td>
+                            {t.realized_pnl != null
+                              ? Number(t.realized_pnl).toFixed(6)
+                              : "-"}
+                          </td>
+                          <td>
+                            {t.created_at
+                              ? new Date(t.created_at).toLocaleString()
+                              : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         );

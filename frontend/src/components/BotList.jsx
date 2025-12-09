@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { getBotTrades } from "../api/bots";
 
 function BotList({
@@ -181,8 +181,8 @@ function BotList({
                 : 0;
 
             return (
-              <>
-                <tr key={bot.id}>
+              <Fragment key={bot.id}>
+                <tr>
                   <td>{bot.id}</td>
                   <td>{bot.name}</td>
                   <td>{bot.symbol}</td>
@@ -193,7 +193,7 @@ function BotList({
                     <div className="bot-actions">
                       {actions.map((action, idx) => (
                         <button
-                          key={idx}
+                          key={`${bot.id}-${action.label}-${idx}`}
                           className={`btn ${
                             action.type === "secondary" ? "btn-secondary" : ""
                           }`}
@@ -332,7 +332,7 @@ function BotList({
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </tbody>
