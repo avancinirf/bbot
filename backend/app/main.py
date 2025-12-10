@@ -13,6 +13,7 @@ from app.api.routes_binance import router as binance_router
 from app.api.routes_indicators import router as indicators_router
 from app.api.routes_stats import router as stats_router
 from app.api.routes_trades import router as trades_router
+from app.api.routes_analysis import router as analysis_router
 from app.engine.runner import bot_engine_loop
 
 
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(indicators_router)
     app.include_router(stats_router)
     app.include_router(trades_router)
+    app.include_router(analysis_router)
 
 
     @app.get("/", tags=["health"])
