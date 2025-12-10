@@ -18,6 +18,19 @@ function formatRecomendacao(code) {
   }
 }
 
+function getRecomendacaoClasses(code) {
+  switch (code) {
+    case "avaliar_entrada":
+      return "px-1.5 py-0.5 rounded text-xs bg-emerald-100 text-emerald-800";
+    case "manter_posicao":
+      return "px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-800";
+    case "avaliar_saida":
+      return "px-1.5 py-0.5 rounded text-xs bg-rose-100 text-rose-800";
+    default:
+      return "px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-800";
+  }
+}
+
 function ActiveBotsPanel({ bots }) {
   const [statsByBot, setStatsByBot] = useState({});
   const [loadingStats, setLoadingStats] = useState(false);
@@ -295,11 +308,21 @@ function ActiveBotsPanel({ bots }) {
 
                 {analysis && (
                   <>
-                    <div>
-                      <span className="font-semibold">Recomendação: </span>
-                      <span className="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800">
-                        {formatRecomendacao(analysis.analysis?.recomendacao)}
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-semibold mr-1">
+                          Recomendação:
+                        </span>
+                        <span
+                          className={getRecomendacaoClasses(
+                            analysis.analysis?.recomendacao
+                          )}
+                        >
+                          {formatRecomendacao(
+                            analysis.analysis?.recomendacao
+                          )}
+                        </span>
+                      </div>
                     </div>
 
                     {Array.isArray(analysis.analysis?.motivos) &&
@@ -381,6 +404,11 @@ function ActiveBotsPanel({ bots }) {
                           </div>
                         </div>
                       )}
+
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      Esta análise é apenas informativa e não constitui
+                      recomendação financeira.
+                    </p>
                   </>
                 )}
               </div>
