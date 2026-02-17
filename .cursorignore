@@ -1,0 +1,32 @@
+# Dependências
+/vendor/
+/node_modules/
+
+# Build do front (gerado)
+public/build/
+public/hot
+
+# Credenciais / segredos
+.env
+.env.*
+*.pem
+*.key
+
+# Logs e caches (podem vazar dados)
+storage/logs/
+storage/framework/cache/
+storage/framework/sessions/
+bootstrap/cache/
+
+# SQLite com dados locais
+database/*.sqlite
+database/*.sqlite-journal
+database/*.sqlite-wal
+database/*.sqlite-shm
+
+# Arquivos grandes/irrelevantes
+*.log
+*.zip
+*.tar
+*.gz
+.DS_Store

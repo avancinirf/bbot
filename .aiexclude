@@ -1,0 +1,28 @@
+# --- Secrets / keys (NUNCA mandar pro contexto do agente)
+.env
+.env.*
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+
+# --- App data / cache / logs
+database/*.sqlite
+database/*.sqlite3
+storage/**/*.sqlite
+storage/**/*.sqlite3
+storage/logs/**
+storage/framework/cache/**
+storage/framework/sessions/**
+storage/framework/views/**
+bootstrap/cache/**
+public/hot
+
+# --- Dependencies
+vendor/**
+node_modules/**
+
+# --- Misc
+*.log
+.DS_Store
+.idea/**
