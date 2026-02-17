@@ -30,7 +30,7 @@
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Último Valor</dt>
-                            <dd class="mt-1 text-sm text-gray-900">{{ $bot->ultimo_valor ?? '—' }}</dd>
+                            <dd class="mt-1 text-sm text-gray-900">{{ $bot->ultimo_valor !== null ? number_format($bot->ultimo_valor, 2, ',', '.') : '—' }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Status</dt>
@@ -85,8 +85,8 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $operacao->porcentagem }}%</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $operacao->valor_anterior ?? '—' }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $operacao->valor_trade ?? '—' }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $operacao->valor_anterior !== null ? number_format($operacao->valor_anterior, 2, ',', '.') : '—' }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $operacao->valor_trade !== null ? number_format($operacao->valor_trade, 2, ',', '.') : '—' }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $operacao->data_trade ? $operacao->data_trade->format('d/m/Y H:i') : '—' }}</td>
                                     </tr>
                                 @empty

@@ -31,4 +31,10 @@ COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.con
 COPY docker/apache/servername.conf /etc/apache2/conf-available/servername.conf
 RUN a2enconf servername
 
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 WORKDIR /var/www/html
+
+ENTRYPOINT ["entrypoint.sh"]
+CMD ["apache2-foreground"]

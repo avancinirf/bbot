@@ -39,6 +39,7 @@ return [
         'key' => env('BINANCE_API_KEY', ''),
         'secret' => env('BINANCE_API_SECRET', ''),
         'base_url' => env('BINANCE_BASE_URL', 'https://testnet.binance.vision'),
+        'validate_interval' => env('VALIDATE_OPERATIONS_TIME', 5),
     ],
 
 ];

@@ -57,6 +57,45 @@ class BinanceService
     }
 
     /**
+     * Retorna o preco atual de um ativo base em relacao a um ativo de cotacao.
+     * Ex: getPrice('BTC', 'USDC') consulta o par BTCUSDC.
+     *
+     * @return float|null  Preco atual ou null se nao encontrado.
+     */
+    public function getPrice(string $baseAsset, string $quoteAsset = 'USDC'): ?float
+    {
+        $symbol = strtoupper($baseAsset . $quoteAsset);
+        $response = $this->publicRequest('GET', '/api/v3/ticker/price', ['symbol' => $symbol]);
+
+        return isset($response['price']) ? (float) $response['price'] : null;
+    }
+
+    /**
+     * Retorna os saldos da conta com valores > 0.
+     * Usa signedRequest no endpoint /api/v3/account.
+     *
+     * @return array<int, array{asset: string, free: float, locked: float}>
+     */
+    public function getAccountBalances(): array
+    {
+        $response = $this->signedRequest('GET', '/api/v3/account', [
+            'omitZeroBalances' => 'true',
+        ]);
+        $balances = $response['balances'] ?? [];
+
+        return collect($balances)
+            ->filter(fn ($b) => (float) $b['free'] > 0 || (float) $b['locked'] > 0)
+            ->map(fn ($b) => [
+                'asset' => $b['asset'],
+                'free' => (float) $b['free'],
+                'locked' => (float) $b['locked'],
+            ])
+            ->sortBy('asset')
+            ->values()
+            ->all();
+    }
+
+    /**
      * Requisicao publica (sem assinatura HMAC).
      */
     public function publicRequest(string $method, string $endpoint, array $params = []): array
