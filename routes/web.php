@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BotController;
+use App\Http\Controllers\LogController;
 use App\Http\Controllers\MoedaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WalletController;
@@ -18,7 +19,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/bots/{bot}/refresh-price', [BotController::class, 'refreshPrice'])->name('bots.refreshPrice');
     Route::post('/scheduler/status', [BotController::class, 'schedulerStatus'])->name('scheduler.status');
     Route::get('/scheduler/ultima-atualizacao', [BotController::class, 'ultimaAtualizacao'])->name('scheduler.ultimaAtualizacao');
+    Route::get('/carteira', [WalletController::class, 'index'])->name('wallet.index');
     Route::get('/wallet/balances', [WalletController::class, 'balances'])->name('wallet.balances');
+    Route::get('/logs/{date?}', [LogController::class, 'index'])->name('logs.index');
 });
 
 Route::middleware('auth')->group(function () {

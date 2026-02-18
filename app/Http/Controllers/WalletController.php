@@ -6,9 +6,15 @@ use App\Services\BinanceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\View\View;
 
 class WalletController extends Controller
 {
+    public function index(): View
+    {
+        return view('wallet.index');
+    }
+
     /**
      * Retorna os saldos da carteira Binance em JSON.
      *

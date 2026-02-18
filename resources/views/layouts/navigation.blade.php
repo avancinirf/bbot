@@ -13,7 +13,13 @@
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
+                        Bots
+                    </x-nav-link>
+                    <x-nav-link :href="route('wallet.index')" :active="request()->routeIs('wallet.*')">
+                        Carteira
+                    </x-nav-link>
+                    <x-nav-link :href="route('logs.index')" :active="request()->routeIs('logs.*')">
+                        Logs
                     </x-nav-link>
                 </div>
             </div>
@@ -68,7 +74,13 @@
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
+                Bots
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('wallet.index')" :active="request()->routeIs('wallet.*')">
+                Carteira
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('logs.index')" :active="request()->routeIs('logs.*')">
+                Logs
             </x-responsive-nav-link>
         </div>
 

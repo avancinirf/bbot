@@ -19,7 +19,7 @@ class BotController extends Controller
      */
     public function index(): View
     {
-        $bots = Bot::orderByDesc('created_at')->get();
+        $bots = Bot::with('operacoes')->orderByDesc('created_at')->get();
         $moedas = Moeda::where('status', true)->orderBy('nome')->get();
         $ultimaAtualizacao = Cache::get('bots_ultima_atualizacao');
 
@@ -48,8 +48,15 @@ class BotController extends Controller
             'status' => 'required|in:inativo,ativo',
             'operacoes' => 'required|array|min:1',
             'operacoes.*.tipo' => 'required|in:compra,venda',
-            'operacoes.*.porcentagem' => 'required|numeric|min:0.1|max:100',
+            'operacoes.*.porcentagem' => 'required|numeric|min:0|max:100',
+            'operacoes.*.valor_negociado' => 'required|numeric|min:0.01',
         ]);
+
+        foreach ($validated['operacoes'] as $i => $op) {
+            if ($op['tipo'] === 'venda' && (float) $op['porcentagem'] <= 0) {
+                return back()->withErrors(["operacoes.{$i}.porcentagem" => 'A porcentagem para venda deve ser maior que 0.'])->withInput();
+            }
+        }
 
         $ultimoValor = null;
 

@@ -19,16 +19,23 @@ class Operacao extends Model
         'bot_id',
         'tipo',
         'porcentagem',
+        'valor_negociado',
         'valor_anterior',
         'valor_trade',
         'data_trade',
+        'binance_order_id',
+        'quantidade_executada',
+        'comissao_total',
     ];
 
     protected $casts = [
         'porcentagem' => 'decimal:1',
+        'valor_negociado' => 'decimal:10',
         'valor_anterior' => 'decimal:10',
         'valor_trade' => 'decimal:10',
         'data_trade' => 'datetime',
+        'quantidade_executada' => 'decimal:10',
+        'comissao_total' => 'decimal:10',
         'tipo' => 'string',
     ];
 

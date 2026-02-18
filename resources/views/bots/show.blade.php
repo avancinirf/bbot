@@ -66,32 +66,46 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Porcentagem</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Anterior</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Trade</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Trade</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">%</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Valor USDC</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Val. Anterior</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Val. Trade</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qtd. Exec.</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Comissão</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Trade</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse ($bot->operacoes as $operacao)
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $operacao->id }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $operacao->id }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                                 {{ $operacao->tipo === 'compra' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                                                 {{ ucfirst($operacao->tipo) }}
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $operacao->porcentagem }}%</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $operacao->valor_anterior !== null ? number_format($operacao->valor_anterior, 2, ',', '.') : '—' }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $operacao->valor_trade !== null ? number_format($operacao->valor_trade, 2, ',', '.') : '—' }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $operacao->data_trade ? $operacao->data_trade->format('d/m/Y H:i') : '—' }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $operacao->porcentagem }}%</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">{{ $operacao->valor_negociado !== null ? number_format($operacao->valor_negociado, 2, ',', '.') : '—' }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">{{ $operacao->valor_anterior !== null ? number_format($operacao->valor_anterior, 2, ',', '.') : '—' }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">{{ $operacao->valor_trade !== null ? number_format($operacao->valor_trade, 2, ',', '.') : '—' }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">{{ $operacao->quantidade_executada !== null ? number_format($operacao->quantidade_executada, 8, ',', '.') : '—' }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">{{ $operacao->comissao_total !== null ? number_format($operacao->comissao_total, 8, ',', '.') : '—' }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ $operacao->data_trade ? $operacao->data_trade->format('d/m/Y H:i') : '—' }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                            @if($operacao->data_trade)
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Executada</span>
+                                            @else
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pendente</span>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        <td colspan="10" class="px-4 py-4 text-center text-sm text-gray-500">
                                             Nenhuma operação encontrada.
                                         </td>
                                     </tr>

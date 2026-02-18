@@ -96,6 +96,26 @@ class BinanceService
     }
 
     /**
+     * Envia uma ordem MARKET na Binance.
+     * Usa quoteOrderQty para definir o valor em USDC a negociar.
+     *
+     * @param string $symbol  Par (ex: BTCUSDC)
+     * @param string $side    BUY ou SELL
+     * @param float  $quoteOrderQty  Valor em USDC
+     * @return array  Resposta FULL da Binance com fills
+     */
+    public function placeOrder(string $symbol, string $side, float $quoteOrderQty): array
+    {
+        return $this->signedRequest('POST', '/api/v3/order', [
+            'symbol' => $symbol,
+            'side' => strtoupper($side),
+            'type' => 'MARKET',
+            'quoteOrderQty' => number_format($quoteOrderQty, 8, '.', ''),
+            'newOrderRespType' => 'FULL',
+        ]);
+    }
+
+    /**
      * Requisicao publica (sem assinatura HMAC).
      */
     public function publicRequest(string $method, string $endpoint, array $params = []): array
